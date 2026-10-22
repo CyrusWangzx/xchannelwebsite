@@ -1,0 +1,6608 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   设计令牌 · 换肤唯一入口
+   颜色一律以「RGB 通道值」存储，交由 Tailwind 的 <alpha-value> 消费。
+   改配色只需覆盖下列通道值，无需触碰任何组件。
+   ========================================================================= */
+:root {
+  color-scheme: dark;
+
+  /* ---- 底色层 ---- */
+  --c-bg-rgb: 11 15 20;
+  --c-bg-deep-rgb: 14 17 22;
+
+  /* ---- 表面层 ---- */
+  --c-surface-rgb: 18 24 32;
+  --c-surface-elevated-rgb: 23 31 42;
+
+  /* ---- 玻璃层 ----
+     「液态玻璃」的观感来自四件事同时成立，缺一件就会退化成一块半透明色块：
+     1. 背景模糊 + 高饱和（透过玻璃的颜色更艳，而不是发灰）
+     2. 顶部 1px 内高光（模拟玻璃倒角的反光边）
+     3. 一条斜向的镜面渐变（模拟环境光扫过曲面）
+     4. 柔和外阴影把玻璃「抬」离背景
+     下面 4 组 alpha 分别对应这四件事。 */
+  --c-glass-rgb: 255 255 255;
+  --glass-alpha: 0.06;
+  --glass-border-alpha: 0.08;
+  --glass-blur: 20px;
+  --glass-saturate: 180%;
+
+  /* 镜面渐变：深色底上用白光扫过 */
+  --glass-sheen-rgb: 255 255 255;
+  --glass-sheen-alpha: 0.1;
+  /* 倒角内高光 */
+  --glass-rim-rgb: 255 255 255;
+  --glass-rim-alpha: 0.14;
+  /* 悬停：玻璃变厚一点 */
+  --glass-hover-alpha: 0.1;
+  --glass-hover-border-alpha: 0.2;
+
+  /* ---- 主色 ----
+     accent 仅用于描边 / 装饰 / 大号文字；
+     承载白色正文必须用 accent-strong（对比度 4.83:1，达 WCAG AA） */
+  --c-accent-rgb: 59 130 246;
+  --c-accent-strong-rgb: 37 99 235;
+  --c-accent-bright-rgb: 102 192 244;
+  /* accent 用来**上文字**时的安全取值。accent-bright 在深底上 9.5:1 很好，
+     但浅底上（#3B82F6）只有 3.48:1，小字不达 AA——所以它只适合深色主题。
+     这一支在两个主题里各自取当时达标的那一个，让「accent 色的文字」有单一入口。 */
+  --c-accent-text-rgb: 102 192 244;
+  --c-cyan-rgb: 34 211 238;
+
+  /* ---- 文本 ---- */
+  --c-text-rgb: 245 247 250;
+  --c-muted-rgb: 167 176 189;
+
+  /* ---- 描边 ----
+     统一由「通道 + 显式 alpha」生成，不依赖 <alpha-value> 的默认值 1。
+     这样 border-hairline / border-border 都会得到真正的 8% 细线。 */
+  --c-hairline-rgb: 255 255 255;
+  --hairline-alpha: 0.08;
+  --hairline-strong-alpha: 0.16;
+
+  /* ---- 媒体浮层 ----
+     覆盖在照片 / 海报之上的控件。画面明暗不可控，
+     因此这组令牌只在 :root 定义、不参与主题反相，
+     恒定「深色底 + 白色细描边 + 白字」，保证任何画面上都可读。 */
+  --c-scrim-rgb: 9 12 17;
+  --scrim-alpha: 0.5;
+  --scrim-hover-alpha: 0.68;
+  --scrim-border-alpha: 0.18;
+
+  /* ---- 首屏 HUD（科技感装饰）----
+     这组令牌只服务主标语的「技术图纸」外壳：细网格底纹 + 直角取景框。
+     强度刻意压得很低（网格 5% 上下），定位是「凑近才发现的秩序感」，
+     而不是一眼可见的发光装饰。 */
+  --hud-line-rgb: 148 179 214;
+  --hero-grid-alpha: 0.075;
+  --hero-frame-alpha: 0.42;
+  /* 扫过标语的细光带颜色 */
+  --hero-scan-rgb: 125 199 255;
+  --hero-scan-alpha: 0.65;
+  /* 标语的冷光晕。只做「一层很薄的边光」，不做霓虹：
+     值一大字就会糊掉，反而毁掉可读性。 */
+  --hero-slogan-glow-alpha: 0.3;
+
+  /* ---- 物料品牌色（取自 public/materials 那套实拍图的真实色值）----
+     #FDEC0A 是全图占比最高的黄（16.6%），也是整套物料的主色；
+     #D6202C 是「99%」那组红字去掉高光后的基色；墨色贴纸上的黑固定 #111。
+     这组色**只做小面积点缀**（贴纸、胶带边、编号牌），不做大面积铺底。 */
+  --c-brand-rgb: 253 236 10;
+  --c-brand-ink-rgb: 17 17 17;
+  /* 备用：物料里的红只出现在「99%」这组字上，导航暂时用不到，
+     但它是这套色板的一部分，先留着以免下次重新采样。 */
+  --c-brand-red-rgb: 214 32 44;
+  /* 「线条 / 文字」用的品牌色。深色底上就是那支黄；
+     浅色底上换成深琥珀，否则黄线黄字直接糊在白底里。 */
+  --c-brand-edge-rgb: 253 236 10;
+
+  /* ---- 导航入口的五枚「印刷专色」----
+     物料那套实拍里能站住的颜色其实只有三支（黄 / 红 / 蓝），凑不满五个入口，
+     所以按「同一本色卡」的标准补了两支邻近色：五枚的**明度与彩度刻意拉齐**，
+     并排看着像一张专色卡，而不是一道彩虹。
+     每一枚的分配写在下面 .nav-item[data-key=...] 上，语义上尽量对得上：
+     形象=品相红 / 媒体=天青 / 游戏=橘 / Token=薄荷 / 物料=黄（物料本色）。
+     ⚠️ 五枚全部够亮，所以**统一压墨字**（#111），对比度最低的品相红也有 5.6:1。 */
+  --c-nav1-rgb: 255 61 135;
+  --c-nav2-rgb: 34 201 242;
+  --c-nav3-rgb: 255 138 30;
+  --c-nav4-rgb: 47 217 138;
+  --c-nav5-rgb: 253 236 10;
+
+  /* ---- 导航外壳（物料印刷语言）----
+     Cyrus 反馈原导航「设计感太差」——它是一条纯色平面，没有焦点、没有材质。
+     这一版整条换成 X.物料那套印刷语言：
+     ① .nav-dots 网点底纹（物料实拍里最显眼的印刷纹理）
+     ② 底边线 = 品牌黄的一道「胶带边」
+     ③ 当前页 = 入口本色的贴纸胶囊（黄底黑字那组颜色关系）；
+        未选中项常驻一枚专色圆点，悬停透出本色的淡底。
+     网点强度压在 15% 上下，定位仍是「贴近才看得见的材质」，不是一堵花墙。 */
+  --nav-dot-rgb: 253 236 10;
+  --nav-dot-alpha: 0.15;
+  /* 未选中项悬停时的淡底强度（颜色取该入口自己的专色） */
+  --nav-hover-alpha: 0.12;
+  --nav-edge-alpha: 0.38;
+
+  /* X.物料 铭牌行那条刻度横档的强度 */
+  --cabinet-line-alpha: 0.45;
+
+  /* ---- X.物料 玻璃展示柜（CSS 3D）----
+     柜体是真用 3D 变换搭出来的箱体，所以这组令牌里有一套「实体色」：
+     金属框、内腔背板、侧板、层板。深色主题是「暗室 + 射灯」，
+     浅色主题换成白玻璃柜——两套都靠同一组变量切换。 */
+  --c-case-frame-rgb: 36 43 55;      /* 柜体金属框 / 底座 */
+  --c-case-back-rgb: 12 16 22;       /* 内腔背板（最暗） */
+  --c-case-side-rgb: 22 28 38;       /* 侧板 / 顶板（受光，比背板亮一档） */
+  --c-case-shelf-rgb: 30 38 50;      /* 层板 */
+  --c-case-led-rgb: 255 246 222;     /* 暖白 LED：只负责「晕」（背板/层板/柔光） */
+  --c-case-lamp-rgb: 255 246 222;    /* 灯带本体：顶灯条 + 两侧竖灯带 */
+  --c-case-label-rgb: 255 246 222;   /* 柜内刻字（层号 / 踢脚线） */
+  --case-led-alpha: 0.45;            /* 灯带的晕 */
+  --case-led-core-alpha: 0.85;       /* 灯带本体 */
+  --c-case-glass-rgb: 255 255 255;   /* 玻璃门 */
+  --case-glass-alpha: 0.05;
+  --case-glass-hi-alpha: 0.15;       /* 斜向镜面反光 */
+  --case-glass-edge-alpha: 0.24;
+  --case-open-dur: 880ms;            /* 柜门开合时长 */
+  --case-item-dur: 320ms;            /* 展品抬起 / 压暗时长 */
+  --case-dim-alpha: 0.3;             /* 未选中展品的压暗强度 */
+  --case-halo-alpha: 0.34;           /* 选中展品的聚光 */
+
+  /* 细节层的令牌：热区平面 / 背板拉丝 / 开柜亮灯 */
+  --c-case-hit-rgb: 255 255 255;
+  --case-hit-alpha: 0.004;           /* 热区平面的极淡填充，只为让整块「被绘制」 */
+  --c-case-brush-rgb: 255 255 255;   /* 背板的竖向拉丝 */
+  --case-brush-alpha: 0.028;
+  --case-led-open-alpha: 0.7;        /* 开门后灯带的晕 */
+  --case-glow-alpha: 0.26;           /* 开门后洒进内腔的柔光 */
+  --case-glowbar-alpha: 0.34;        /* 内腔两侧竖向灯带 */
+  --case-shadow-alpha: 0.5;          /* 柜体落地阴影 */
+
+  /* ---- X.收藏 官方服装挂架 ----
+     金属管三档：暗边 / 管身 / 高光。三档拉得越开，管子越像金属；
+     暗室里那根杆子几乎是靠高光那条窄亮带才"圆"起来的。 */
+  --c-ap-metal-rgb: 116 126 140;      /* 管身 */
+  --c-ap-metal-dark-rgb: 20 24 30;    /* 管子的背光侧 */
+  --c-ap-metal-hi-rgb: 198 206 218;   /* 高光带 */
+  /* 挂钩单独一支：它细、又压在横杆上，用"高光色"在深色主题里刚好，
+     到浅色主题就是一根白线糊在白底上。 */
+  --c-ap-hook-rgb: 214 222 232;
+  --c-ap-floor-rgb: 255 255 255;      /* 地面光斑 */
+  --ap-floor-alpha: 0.085;
+  --ap-shadow-alpha: 0.55;            /* 落地投影 / 管子投影 */
+
+  /* ---- X.游戏 投币厅（霓虹街机）----
+     机身是深色板，**屏幕在两个主题里都是黑的**——屏幕本来就是黑的，
+     浅色页面上它正好当一块明确的暗色焦点。
+     三支霓虹沿用导航那套分配（游戏 = 橘），凑成一组灯管色。 */
+  --c-arcade-body-rgb: 22 26 34;     /* 机身正面 */
+  --c-arcade-body-2-rgb: 11 14 19;   /* 侧板 / 暗面 */
+  --c-arcade-screen-rgb: 5 8 12;     /* 屏幕底（不参与主题反相） */
+  --c-arcade-pixel-rgb: 233 245 255; /* 屏幕上的像素前景（只给黑屏用，别拿去当浅底上的字色） */
+  --c-arcade-ink-rgb: 233 245 255;   /* 浅色构件上的字色：灯箱刻字、操作键图标 */
+  --c-arcade-neon1-rgb: 255 138 30;  /* 浓度收集：橘 */
+  --c-arcade-neon2-rgb: 34 201 242;  /* 砖块清屏：天青 */
+  --c-arcade-neon3-rgb: 47 217 138;  /* 信号贪吃蛇：薄荷 */
+  /* 霓虹当**文字**用在页面底色上时的那一份（深色主题 = 霓虹本尊；浅色主题换成同色系深色版，
+     否则 255 138 30 落在浅底上只有 2.2:1）。描边、光晕仍然用上面三支原色。 */
+  --c-arcade-neon1-ink-rgb: 255 138 30;
+  --c-arcade-neon2-ink-rgb: 34 201 242;
+  --c-arcade-neon3-ink-rgb: 47 217 138;
+  --arcade-glow-alpha: 0.42;         /* 霓虹的晕：只做描边外的一层薄光，不做大面积发光 */
+  --arcade-ink-glow-alpha: 0.9;      /* 浅底构件的字晕；浅色主题收掉，不然深字周围糊一圈脏光 */
+  --arcade-edge-alpha: 0.75;         /* 霓虹描边 */
+  --arcade-scan-alpha: 0.14;         /* CRT 扫描线 */
+  --arcade-marquee-dur: 3.6s;        /* 灯箱光带扫过的周期 */
+
+  /* ---- 街机箱体（3D 六面体）----
+     箱体是 preserve-3d 拼出来的真六面体，所以每张面要有自己的一档明度：
+     正面最亮、侧面次之、背面/底面最暗，rotateY 一转纵深才读得出来。
+     另加一支赛博冷色 rim（只做描边与一条高光，不铺面）。 */
+  --c-arcade-shell-3-rgb: 8 10 15;   /* 箱体背面 / 底面 */
+  --c-arcade-rim-rgb: 120 208 255;   /* 赛博冷色 rim 光 */
+  --arcade-rim-alpha: 0.5;           /* rim 描边强度 */
+  --arcade-floor-alpha: 0.24;        /* 脚下网格 */
+  --arcade-depth: 62px;              /* 箱体进深 */
+
+  /* ---- X.游戏 · 第二工位：赛博刮刮乐 ----
+     票面是「印刷品」：一张卡纸 + 一层金属刮层。**两个主题下都要像一张票**，
+     所以票面纸色跟着主题翻（深色主题是深灰卡纸，浅色主题是暖白卡纸），
+     字色也跟着翻 —— 这跟街机机身是同一套处理方式。
+     ⚠️ 不要把票面做成近白：深色页面上会突然出现一块发光的大白板。
+     刮层用金属灰（深色主题压到 104，浅色主题抬到 176），它是「物理覆盖物」，
+     不是主题色，所以两边都保持灰的读感，只调明度。 */
+  --c-scratch-stock-rgb: 20 23 29;      /* 票面卡纸 */
+  --c-scratch-stock-2-rgb: 30 34 42;    /* 卡纸渐变的另一端（压出纸的厚度） */
+  --c-scratch-ink-rgb: 236 240 246;     /* 票面主字 */
+  --c-scratch-ink-2-rgb: 156 166 180;   /* 票面次要字 */
+  --c-scratch-rule-rgb: 255 255 255;    /* 票面细线（走 alpha） */
+  --c-scratch-rule-alpha: 0.14;
+  --c-scratch-foil-rgb: 68 76 88;       /* 刮层底色（石墨金属灰） */
+  --c-scratch-foil-2-rgb: 104 113 128;  /* 刮层高光那一道 */
+  --c-scratch-foil-ink-rgb: 46 52 62;   /* 刮层上印的水印字 */
+  --c-scratch-foil-ink-alpha: 0.5;
+  --c-scratch-win-rgb: 255 182 72;      /* 中奖提示 */
+  --c-scratch-lose-rgb: 156 166 180;    /* 未中奖提示（刻意不红：不制造失败感） */
+  --scratch-paper-shadow: 0 18px 40px -22px rgb(0 0 0 / 0.9),
+    0 2px 0 rgb(255 255 255 / 0.04), inset 0 0 0 1px rgb(255 255 255 / 0.07);
+
+  /* 五款票的主色（一款一色，与 CARD_FACES 的 color 一一对应）。
+     原色只用于描边/色带/符号；**当文字落在票面上时**走 -ink 那一支（见浅色主题）。 */
+  --c-scratch-orange-rgb: 255 138 30;
+  --c-scratch-cyan-rgb: 34 201 242;
+  --c-scratch-mint-rgb: 47 217 138;
+  --c-scratch-rose-rgb: 245 104 138;
+  --c-scratch-violet-rgb: 154 124 255;
+  --c-scratch-orange-ink-rgb: 255 138 30;
+  --c-scratch-cyan-ink-rgb: 34 201 242;
+  --c-scratch-mint-ink-rgb: 47 217 138;
+  --c-scratch-rose-ink-rgb: 245 104 138;
+  --c-scratch-violet-ink-rgb: 154 124 255;
+  /* 色块上的字：面额角标是实心款色块，两种主题都用深字（同品牌黄配黑油墨的逻辑） */
+  --c-scratch-on-hue-rgb: 12 14 18;
+
+  /* 取票架：背板 / 搁板价签 / 板上的刻线。
+     架子是**家具**，两个主题各是一套"实物"：深色主题是深色烤漆铁架，
+     浅色主题是浅灰亚克力架 —— 跟街机机身同样处理，不是把深色半透明化。 */
+  --c-scratch-rack-rgb: 12 15 20;
+  --c-scratch-rack-2-rgb: 21 25 32;
+  --c-scratch-rack-rule-rgb: 206 218 236;
+  --c-scratch-plate-rgb: 16 20 26;
+  --c-scratch-plate-2-rgb: 27 32 41;
+
+  /* 木托 + 钢丝夹（照 Cyrus 给的实拍）。
+     木头是**实物**，不是主题色：深色主题用胡桃木（压暗、不反光），
+     浅色主题用浅橡木。⚠️ 白木头不能被"半透明化"救活 —— 换色值，别只调 alpha。 */
+  --c-scratch-wood-rgb: 92 68 48;
+  --c-scratch-wood-2-rgb: 62 44 30;
+  --c-scratch-wood-ink-rgb: 232 204 168;
+  --c-scratch-wire-rgb: 172 184 200;
+  /* 卡纸的侧边（翻面时看到的那条"纸芯"）：比票面亮一点点，才像被切开的卡纸 */
+  --c-scratch-cardedge-rgb: 176 184 196;
+  /* 卡面光效（只在拿在手上那张上挂）。深色：镭射用 screen 才是"反光"，
+     强度压到 12% —— 再高就是迪斯科球。流光核心是纯白（黑底上才有对比）。 */
+  --holo-a: 0.16;
+  --holo-blend: screen;
+  --sheen-core: 255 255 255;
+  --sheen-blend: screen;
+
+  /* ---- 首页 · 3D 许愿池 ----
+     水面、池底石材、硬币、漂流瓶、水花……整套 3D 配色都在这里。
+     引擎（components/wishingwell/gl/engine.ts）启动时用 getComputedStyle
+     把这些令牌读成 0..1 的 RGB 直接喂给 shader —— 所以换配色仍然只有
+     这一个入口，代码里不写死任何颜色。
+     玻璃展示柜 / 投币厅那套「面明度」的经验同样适用：池壁受光那侧要亮、
+     内腔要压暗，rotate 一转纵深才读得出来。
+     注意：所有 --c-*-rgb 都必须是**空格分隔**的三个数（详见顶部纪律）。 */
+  --c-well-water-deep-rgb: 8 26 40;      /* 池心的深水 */
+  --c-well-water-shallow-rgb: 24 78 100; /* 池边偏浅的水色 */
+  --c-well-water-rim-rgb: 108 196 240;   /* 水面掠射角的边光 */
+  --c-well-stone-rgb: 44 47 56;          /* 池底 / 池壁石材 */
+  --c-well-stone-deep-rgb: 20 22 28;     /* 池心那圈更暗的石材 */
+  --c-well-grout-rgb: 92 98 112;         /* 石缝与刻痕 */
+  --c-well-gold-rgb: 255 209 97;         /* 硬币金色 */
+  --c-well-gold-deep-rgb: 184 128 36;    /* 硬币暗部 */
+  --c-well-highlight-rgb: 255 238 168;   /* 「已实现」的金色光环 */
+  --c-well-glass-rgb: 96 176 190;        /* 漂流瓶玻璃 */
+  --c-well-glass-deep-rgb: 40 104 124;   /* 瓶底更厚的那一段 */
+  --c-well-paper-rgb: 240 230 200;       /* 瓶里的信纸 */
+  --c-well-splash-rgb: 178 224 255;      /* 水花 */
+  --c-well-splash-tip-rgb: 255 255 255;  /* 水花边缘 */
+  --c-well-fish-rgb: 238 108 50;         /* 水下锦鲤：背部主色 */
+  --c-well-fish-deep-rgb: 136 50 30;     /* 锦鲤斑纹 / 暗部 */
+  --c-well-fish-belly-rgb: 240 224 198;  /* 锦鲤腹部（浅） */
+  --c-well-fish-fin-rgb: 226 174 132;    /* 鳍：比身体浅一档，读起来才「薄」 */
+  --well-light-rgb: -0.42 0.82 0.38;     /* 平行光方向（会被归一化） */
+  --well-specular: 0.5;                  /* 水面高光强度 */
+  /* ⚠️ 下面三个是**乘法**，不是 0..1 的比例。高度场的解析梯度只有 0.05–0.2 量级，
+     要乘 20 倍以上才有可见的坡度；写成 1.x 会让水面变成一块平板玻璃。 */
+  --well-normal-strength: 26;            /* 水面法线扰动：高度场解析梯度的放大倍数 */
+  --well-refract-strength: 0.022;        /* 折射偏移（屏幕 uv 比例，0.01–0.03） */
+  --well-rim-strength: 0.85;             /* 水面掠射角边光强度 */
+  --well-bloom-strength: 0.6;            /* 泛光强度 0 = 关闭 */
+  --well-bloom-threshold: 0.78;          /* 亮部阈值：越低越多东西发光 */
+  --well-vignette: 0.34;                 /* 暗角强度 0 = 关闭 */
+
+  /* ---- 派生色（供内联样式与阴影消费）---- */
+  --c-bg: rgb(var(--c-bg-rgb));
+  --c-bg-deep: rgb(var(--c-bg-deep-rgb));
+  --c-surface: rgb(var(--c-surface-rgb));
+  --c-surface-elevated: rgb(var(--c-surface-elevated-rgb));
+  --c-text: rgb(var(--c-text-rgb));
+  --c-muted: rgb(var(--c-muted-rgb));
+  --c-accent: rgb(var(--c-accent-rgb));
+  --c-accent-strong: rgb(var(--c-accent-strong-rgb));
+  --c-accent-bright: rgb(var(--c-accent-bright-rgb));
+  --c-cyan: rgb(var(--c-cyan-rgb));
+  --c-hairline: rgb(var(--c-hairline-rgb) / var(--hairline-alpha));
+  --c-border: var(--c-hairline);
+
+  /* ---- 圆角 ---- */
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+
+  /* ---- 阴影与光影 ----
+     --shadow-1 / --shadow-2 首层是 1px 内高光，营造材质感 */
+  --shadow-1: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.3),
+    0 8px 24px rgb(0 0 0 / 0.24);
+  --shadow-2: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 4px rgb(0 0 0 / 0.32),
+    0 16px 40px rgb(0 0 0 / 0.36);
+  --shadow-glow: 0 0 48px rgb(var(--c-accent-rgb) / 0.22);
+
+  /* ---- 位移 ---- */
+  --lift: -4px;
+  --lift-sm: -2px;
+
+  /* ---- 动效 ---- */
+  --dur-fast: 200ms;
+  --dur-base: 300ms;
+  --dur-slow: 500ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- 布局 ---- */
+  --nav-h: 4.5rem;
+  --nav-h-compact: 3.5rem;
+
+  /* 等宽栈：只给「必须对齐的数字与码」用（投币厅的兑换码）。
+     正文一律走 body 的系统栈，不在这里改。 */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  /* ---- 品牌水印 ----
+     标记已取 alpha 通道做成单色剪影（见 public/watermark-*）。
+     调强度只改 --watermark-alpha，设为 0 即整体关闭水印。 */
+  --watermark-image: url("/watermark-dark.webp");
+  --watermark-tile: 200px;
+  --watermark-alpha: 0.045;
+}
+
+/* ============================================================================
+   浅色主题：只覆盖颜色与光影，时长 / 曲线 / 圆角 / 间距保持不变
+   ========================================================================= */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --c-bg-rgb: 250 251 252;
+  --c-bg-deep-rgb: 243 245 248;
+
+  --c-surface-rgb: 255 255 255;
+  --c-surface-elevated-rgb: 248 250 252;
+
+  --c-glass-rgb: 255 255 255;
+  --glass-alpha: 0.72;
+  --glass-border-alpha: 0.08;
+
+  /* 浅色底上白色镜面是看不见的，改用冷灰蓝的斜向渐变，
+     玻璃的「曲面感」才不会丢；内高光则要用纯白来压边。 */
+  --glass-sheen-rgb: 206 222 244;
+  --glass-sheen-alpha: 0.5;
+  --glass-rim-rgb: 255 255 255;
+  --glass-rim-alpha: 0.95;
+  --glass-hover-alpha: 0.84;
+  --glass-hover-border-alpha: 0.16;
+
+  --c-accent-rgb: 37 99 235;
+  --c-accent-strong-rgb: 29 78 216;
+  --c-accent-bright-rgb: 59 130 246;
+  /* 浅底上取 strong（#1D4ED8，对页面底色约 6.3:1）；bright 在浅底上不达标 */
+  --c-accent-text-rgb: 29 78 216;
+  --c-cyan-rgb: 14 116 144;
+
+  --c-text-rgb: 15 23 42;
+  --c-muted-rgb: 71 85 105;
+
+  --c-hairline-rgb: 15 23 42;
+  --hairline-alpha: 0.1;
+  --hairline-strong-alpha: 0.18;
+
+  /* 浅底上网格与取景框改用墨色，强度略降；
+     冷光晕在浅底极易糊成灰雾，所以收得更狠。 */
+  --hud-line-rgb: 30 58 108;
+  --hero-grid-alpha: 0.06;
+  --hero-frame-alpha: 0.32;
+  --hero-scan-rgb: 37 99 235;
+  --hero-scan-alpha: 0.5;
+  --hero-slogan-glow-alpha: 0.18;
+
+  /* 导航：网点与边线在浅底上换深琥珀，否则黄点黄线在白玻璃上直接消失；
+     贴纸胶囊是「黄底黑字」，两个主题共用，不需要另配。 */
+  --c-brand-edge-rgb: 161 98 7;
+  --nav-dot-rgb: 161 98 7;
+  --nav-dot-alpha: 0.18;
+  --nav-hover-alpha: 0.22;
+  --nav-edge-alpha: 0.3;
+  --cabinet-line-alpha: 0.4;
+
+  /* 玻璃展示柜：浅色主题换成「白玻璃柜」——内腔是冷灰白而不是黑，
+     否则浅底上会突兀地出现一个黑盒子。层板与侧板都往冷灰走，
+     白色展品（手机壳白款、耳机壳）才有一点轮廓可依。 */
+  --c-case-frame-rgb: 150 160 174;
+  --c-case-back-rgb: 224 230 238;
+  --c-case-side-rgb: 238 242 247;
+  --c-case-shelf-rgb: 214 221 231;
+  --c-case-led-rgb: 255 252 240;
+  /* 浅色柜里「暖白灯」是看不见的（白底白灯）。灯带本体改用主色蓝，
+     像现代陈列柜那条蓝色 LED；柜内刻字则必须换成墨色。 */
+  --c-case-lamp-rgb: 37 99 235;
+  --c-case-label-rgb: 30 41 59;
+  --case-led-alpha: 0.5;
+  --case-led-core-alpha: 0.7;
+  --case-glass-alpha: 0.14;
+  --case-glass-hi-alpha: 0.46;
+  --case-glass-edge-alpha: 0.34;
+  --case-dim-alpha: 0.32;
+
+  /* 细节层：浅色柜里拉丝与灯带都得换向——白拉丝在白背板上是隐形的，
+     改用墨色；开柜的柔光在浅底上要收得更紧，否则会糊成一片灰雾。 */
+  --c-case-hit-rgb: 15 23 42;
+  --c-case-brush-rgb: 15 23 42;
+  --case-brush-alpha: 0.02;
+  --case-led-open-alpha: 0.85;
+  --case-glow-alpha: 0.16;
+  --case-glowbar-alpha: 0.22;
+  --case-shadow-alpha: 0.2;
+
+  /* 官方服装挂架：浅底上「金属高光」不能是白的（白管白底 = 一根看不见的杆），
+     所以管子整体压深、高光收到近白但不纯白；地面那片光斑反过来要变成淡影，
+     否则浅底上会浮起一块更亮的椭圆。 */
+  --c-ap-metal-rgb: 118 130 148;
+  --c-ap-metal-dark-rgb: 54 62 76;
+  --c-ap-metal-hi-rgb: 246 249 252;
+  --c-ap-hook-rgb: 84 94 110;         /* 浅底上的挂钩必须是深色，否则整根消失 */
+  --c-ap-floor-rgb: 15 23 42;
+  --ap-floor-alpha: 0.05;
+  --ap-shadow-alpha: 0.24;
+
+  /* 投币厅：机身换成浅银（否则浅底上会突然出现三个黑柜子），霓虹的晕收掉近一半
+     ——浅底上光晕最容易糊成脏雾。屏幕仍然是黑的：它是一块屏幕，不是装饰。
+     三支霓虹（橘/天青/薄荷）在浅底上做**描边**仍然立得住，所以不换色。 */
+  --c-arcade-body-rgb: 224 229 237;
+  --c-arcade-body-2-rgb: 197 204 215;
+  /* 3D 箱体的背面/底面在浅色主题里也要压一档，才读得出纵深 */
+  --c-arcade-shell-3-rgb: 166 175 190;
+  --c-arcade-rim-rgb: 41 120 200;
+  --arcade-rim-alpha: 0.55;
+  --arcade-floor-alpha: 0.22;
+  /* 机身变浅之后，所有"落在机身上的字"必须跟着变深 —— 这是浅色主题最容易漏的一环：
+     灯箱刻字与操作键图标原本吃的是屏幕像素色（近白），浅底上直接消失（1.2~2.2:1）。 */
+  --c-arcade-ink-rgb: 22 26 34;
+  /* 霓虹当文字用在浅底上时换深色版：同色系但压到 5.9~7.1:1，描边/光晕仍用原色 */
+  --c-arcade-neon1-ink-rgb: 154 74 0;
+  --c-arcade-neon2-ink-rgb: 8 92 118;
+  --c-arcade-neon3-ink-rgb: 10 107 66;
+  --arcade-glow-alpha: 0.24;
+  --arcade-ink-glow-alpha: 0.22;
+  --arcade-edge-alpha: 0.85;
+
+  /* 刮刮乐：浅色主题下票面是**暖白卡纸**（真实票就是这个色），字压深。
+     刮层抬成浅银灰 —— 但别抬到近白，否则跟卡纸分不出「哪块还没刮」。
+     五款主色在浅底上当文字会掉到 2.2~3.1:1，所以文字用 -ink 深版，描边/色带仍用原色。 */
+  --c-scratch-stock-rgb: 249 248 244;
+  --c-scratch-stock-2-rgb: 238 236 229;
+  --c-scratch-ink-rgb: 22 25 31;
+  --c-scratch-ink-2-rgb: 98 104 116;
+  --c-scratch-rule-rgb: 0 0 0;
+  --c-scratch-rule-alpha: 0.12;
+  --c-scratch-foil-rgb: 160 167 178;
+  --c-scratch-foil-2-rgb: 199 205 214;
+  --c-scratch-foil-ink-rgb: 96 103 116;
+  --c-scratch-foil-ink-alpha: 0.55;
+  --c-scratch-win-rgb: 176 96 8;
+  --c-scratch-lose-rgb: 98 104 116;
+  --scratch-paper-shadow: 0 16px 32px -22px rgb(24 28 36 / 0.4),
+    0 1px 0 rgb(255 255 255 / 0.9), inset 0 0 0 1px rgb(24 28 36 / 0.14);
+  --c-scratch-orange-ink-rgb: 176 84 0;
+  --c-scratch-cyan-ink-rgb: 8 92 118;
+  --c-scratch-mint-ink-rgb: 10 107 66;
+  --c-scratch-rose-ink-rgb: 168 32 68;
+  --c-scratch-violet-ink-rgb: 88 60 190;
+  --c-scratch-rack-rgb: 222 226 233;
+  --c-scratch-rack-2-rgb: 236 239 243;
+  --c-scratch-rack-rule-rgb: 56 66 84;
+  --c-scratch-plate-rgb: 246 245 241;
+  --c-scratch-plate-2-rgb: 235 233 227;
+  /* 浅色主题的木托是浅橡木；钢丝是暗不锈钢（浅底上银丝会消失） */
+  --c-scratch-wood-rgb: 186 154 114;
+  --c-scratch-wood-2-rgb: 150 119 84;
+  --c-scratch-wood-ink-rgb: 92 68 44;
+  --c-scratch-wire-rgb: 150 158 172;
+  --c-scratch-cardedge-rgb: 216 213 205;
+  /* 浅色：白纸吸墨 —— `screen` 打上去等于没画，镭射必须走 `multiply` 才显彩虹；
+     流光的白核心在浅底上也无效，所以核心仍然给白（multiply 白 = 不变），
+     真正看得见的是那圈**票色墨**。 */
+  --holo-a: 0.22;
+  --holo-blend: multiply;
+  --sheen-core: 255 255 255;
+  --sheen-blend: multiply;
+
+  /* 许愿池：浅色主题下水是一池**清亮**的水，不是深色主题那潭幽蓝——
+     两种情况都要能看见池底的硬币，所以石材改成浅灰麻石、金色压深一档
+     （原金 #FFD161 落在浅底上只有 1.5:1，硬币会直接隐形）。
+     泛光与暗角都收掉大半：浅底上光晕最容易糊成脏雾。 */
+  --c-well-water-deep-rgb: 66 128 152;
+  --c-well-water-shallow-rgb: 148 205 220;
+  --c-well-water-rim-rgb: 52 130 186;
+  --c-well-stone-rgb: 206 211 219;
+  --c-well-stone-deep-rgb: 176 183 195;
+  --c-well-grout-rgb: 148 155 168;
+  --c-well-gold-rgb: 206 150 32;
+  --c-well-gold-deep-rgb: 146 100 18;
+  --c-well-highlight-rgb: 255 214 102;
+  --c-well-glass-rgb: 108 176 196;
+  --c-well-glass-deep-rgb: 62 124 146;
+  --c-well-paper-rgb: 252 248 236;
+  --c-well-splash-rgb: 132 188 226;
+  --c-well-splash-tip-rgb: 255 255 255;
+  --c-well-fish-rgb: 190 74 30;
+  --c-well-fish-deep-rgb: 108 38 20;
+  --c-well-fish-belly-rgb: 236 224 200;
+  --c-well-fish-fin-rgb: 198 138 92;
+  --well-specular: 0.34;
+  /* 这三支原本被引擎写死（26 / 0.022 / 0.85），归一上收时按**现值**落地，
+     保证浅色主题的水面一个像素都没变；要单独调浅色主题再说。 */
+  --well-normal-strength: 26;
+  --well-refract-strength: 0.022;
+  --well-rim-strength: 0.85;
+  --well-bloom-strength: 0.22;
+  --well-bloom-threshold: 0.88;
+  --well-vignette: 0.14;
+
+  --shadow-1: 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 24px rgb(15 23 42 / 0.08);
+  --shadow-2: 0 2px 4px rgb(15 23 42 / 0.08), 0 16px 40px rgb(15 23 42 / 0.12);
+  --shadow-glow: 0 0 48px rgb(var(--c-accent-rgb) / 0.18);
+
+  /* 浅色底换成深墨剪影，并略微提高强度以维持同等可见度 */
+  --watermark-image: url("/watermark-light.webp");
+  --watermark-alpha: 0.06;
+}
+
+@layer base {
+  body {
+    background-color: var(--c-bg);
+    color: var(--c-text);
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: rgb(var(--c-accent-rgb) / 0.3);
+  }
+
+  /* 仅在用户未偏好减少动效时启用平滑滚动 */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: var(--nav-h);
+    }
+  }
+
+  /* 用 clip 保留 sticky 定位可用 */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* 焦点可见轮廓 */
+  :focus-visible {
+    outline: 2px solid var(--c-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* 用户偏好减少动效时全局降级 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* ============================================================================
+   可复用视觉工具类
+   组件只引用类名，具体数值一律来自上面的令牌
+   ========================================================================= */
+@layer components {
+  /* 玻璃拟态（旧档位，保留给存量调用点） */
+  .glass {
+    background-color: rgb(var(--c-glass-rgb) / var(--glass-alpha));
+    border-color: rgb(var(--c-hairline-rgb) / var(--glass-border-alpha));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  }
+
+  .glass-strong {
+    background-color: rgb(var(--c-glass-rgb) / calc(var(--glass-alpha) + 0.06));
+    border-color: rgb(var(--c-hairline-rgb) / var(--glass-border-alpha));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.6))
+      saturate(var(--glass-saturate));
+    backdrop-filter: blur(calc(var(--glass-blur) * 1.6))
+      saturate(var(--glass-saturate));
+  }
+
+  /* ---- 液态玻璃 ----
+     四层叠出来的：底色 + 斜向镜面渐变 + 倒角内高光 + 抬升外阴影。
+     用法：加在需要「一块玻璃」的容器上；需要悬停变厚再加 .glass-liquid-hover。 */
+  .glass-liquid {
+    position: relative;
+    background-color: rgb(var(--c-glass-rgb) / var(--glass-alpha));
+    background-image: linear-gradient(
+      155deg,
+      rgb(var(--glass-sheen-rgb) / var(--glass-sheen-alpha)) 0%,
+      rgb(var(--glass-sheen-rgb) / 0) 36%,
+      rgb(var(--glass-sheen-rgb) / 0) 64%,
+      rgb(var(--glass-sheen-rgb) / calc(var(--glass-sheen-alpha) * 0.4)) 100%
+    );
+    border: 1px solid rgb(var(--c-hairline-rgb) / var(--glass-border-alpha));
+    box-shadow:
+      inset 0 1px 0 rgb(var(--glass-rim-rgb) / var(--glass-rim-alpha)),
+      inset 0 -1px 0 rgb(var(--glass-rim-rgb) / calc(var(--glass-rim-alpha) * 0.35)),
+      var(--shadow-1);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  }
+
+  /* 更厚的一档：导航栏、播放器控制条这类「压在最上层」的玻璃，
+     模糊半径更大、底色更实，才能把下面的内容真正挡开。 */
+  .glass-liquid-strong {
+    background-color: rgb(var(--c-glass-rgb) / calc(var(--glass-alpha) + 0.08));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.5))
+      saturate(calc(var(--glass-saturate) + 20%));
+    backdrop-filter: blur(calc(var(--glass-blur) * 1.5))
+      saturate(calc(var(--glass-saturate) + 20%));
+  }
+
+  .glass-liquid-hover {
+    transition-property: background-color, border-color, box-shadow, transform;
+    transition-duration: var(--dur-base);
+    transition-timing-function: var(--ease-out);
+  }
+
+  .glass-liquid-hover:hover {
+    background-color: rgb(var(--c-glass-rgb) / var(--glass-hover-alpha));
+    border-color: rgb(var(--c-hairline-rgb) / var(--glass-hover-border-alpha));
+    box-shadow:
+      inset 0 1px 0 rgb(var(--glass-rim-rgb) / var(--glass-rim-alpha)),
+      inset 0 -1px 0 rgb(var(--glass-rim-rgb) / calc(var(--glass-rim-alpha) * 0.35)),
+      var(--shadow-2);
+  }
+
+  /* 悬停抬升：位移量与阴影均走令牌 */
+  .lift {
+    transition-property: transform, box-shadow, border-color, background-color;
+    transition-duration: var(--dur-base);
+    transition-timing-function: var(--ease-out);
+  }
+
+  .lift-sm {
+    --lift-y: var(--lift-sm);
+  }
+
+  .lift:hover {
+    transform: translateY(var(--lift-y, var(--lift)));
+    box-shadow: var(--shadow-2);
+  }
+
+  /* 媒体浮层控件：恒定深底白字。
+     不跟随主题是因为它的背景永远是「某张图片」，而不是页面底色。 */
+  .media-control {
+    color: #fff;
+    border: 1px solid rgb(255 255 255 / var(--scrim-border-alpha));
+    background-color: rgb(var(--c-scrim-rgb) / var(--scrim-alpha));
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    backdrop-filter: blur(12px) saturate(160%);
+  }
+
+  .media-control:hover {
+    background-color: rgb(var(--c-scrim-rgb) / var(--scrim-hover-alpha));
+  }
+
+  /* ==========================================================================
+     首屏标语的技术感外壳
+
+     设计取向：不做霓虹、不做故障乱码。用的是「技术图纸」的语言——
+     极淡的细网格、直角取景框、一条偶尔扫过的光带、末尾一枚终端光标。
+     它们全都压在主标语的视觉之下，读起来是「安静、精密」，不是「喧闹」。
+     ========================================================================== */
+
+  /* 细网格底纹：两层线性渐变各画一组 1px 线，
+     再用径向遮罩把四边吃掉，避免网格被容器边界切断而露出硬直角。 */
+  .hero-grid {
+    background-image:
+      linear-gradient(
+        to right,
+        rgb(var(--hud-line-rgb) / var(--hero-grid-alpha)) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        rgb(var(--hud-line-rgb) / var(--hero-grid-alpha)) 1px,
+        transparent 1px
+      );
+    background-size: 34px 34px;
+    -webkit-mask-image: radial-gradient(
+      ellipse 76% 80% at 50% 48%,
+      #000 0%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(
+      ellipse 76% 80% at 50% 48%,
+      #000 0%,
+      transparent 100%
+    );
+  }
+
+  /* 取景框的四个直角。用 clip 画「只有两条边」的 L 形，
+     比给 span 加成对 border 更省节点，也不受圆角影响。 */
+  .hero-corner {
+    position: absolute;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-color: rgb(var(--c-accent-bright-rgb) / var(--hero-frame-alpha));
+    pointer-events: none;
+  }
+
+  .hero-corner-tl {
+    top: 0;
+    left: 0;
+    border-top-width: 2px;
+    border-left-width: 2px;
+  }
+
+  .hero-corner-tr {
+    top: 0;
+    right: 0;
+    border-top-width: 2px;
+    border-right-width: 2px;
+  }
+
+  .hero-corner-bl {
+    bottom: 0;
+    left: 0;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+  }
+
+  .hero-corner-br {
+    bottom: 0;
+    right: 0;
+    border-bottom-width: 2px;
+    border-right-width: 2px;
+  }
+
+  /* 标语的冷色边光：极薄一层，只为了让字「浮」起来一点 */
+  .hero-statement {
+    text-shadow: 0 0 30px
+      rgb(var(--c-accent-bright-rgb) / var(--hero-slogan-glow-alpha));
+  }
+
+  /* 高亮片段（AI）：提亮为 accent-bright，并加一层更紧的辉光，
+     让整句话的视觉重心落在「谁在决策」上。 */
+  .hero-hl {
+    color: var(--c-accent-bright);
+    text-shadow: 0 0 18px
+      rgb(
+        var(--c-accent-bright-rgb) /
+          calc(var(--hero-slogan-glow-alpha) * 1.7)
+      );
+  }
+
+  /* 扫过标语的细光带。周期 5.5s 且两端淡出，
+     定位是「偶尔察觉」而非「一直在闪」——装饰一旦有存在感就成了干扰。 */
+  .hero-scan {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--hero-scan-rgb) / var(--hero-scan-alpha)) 48%,
+      rgb(var(--hero-scan-rgb) / var(--hero-scan-alpha)) 52%,
+      transparent
+    );
+    animation: hero-scan 5.5s ease-in-out infinite;
+  }
+
+  @keyframes hero-scan {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    14% {
+      opacity: 1;
+    }
+    86% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  /* 标语末尾的终端光标。用 steps 造方波，保留硬边——
+     渐隐的光标看起来像「没电了」，不像在等待输入。 */
+  .hero-caret {
+    animation: hero-caret 1.1s steps(1, end) infinite;
+  }
+
+  @keyframes hero-caret {
+    0%,
+    45% {
+      opacity: 1;
+    }
+    55%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* ==========================================================================
+     导航外壳 —— X.物料的印刷语言
+
+     原版是「细网格 + 蓝色底线 + 一片灰字」，Cyrus 的反馈是「设计感太差」。
+     病灶在于整条导航没有焦点：所有元素同灰度、同重量，眼睛落不下去。
+     这一版把导航当成一件印刷品来做，只借用物料上已经成立的三样东西：
+
+       · 网点（halftone）—— 物料实拍里铺得最满的纹理
+       · 黄底黑字贴纸 —— 物料的主视觉就是这一对颜色关系
+       · 一道黄胶带边 —— 代替原来那条蓝线，给整条导航一个收口
+
+     网点强度压在 15% 上下：它是材质，不是图案。
+     ========================================================================== */
+
+  /* 网点底纹 = 一张 45° 网屏。
+     印刷品的网点是有「网线角度」的（胶印经典角度就是 45°），所以这里用一层
+     旋转 45° 的点阵，而不是正对方的点阵——正对方阵看上去是「圆点壁纸」，
+     斜 45° 才像一张印出来的半色调网屏。
+     做法：外层只负责裁切 + 左右两端淡出（遮罩挂在旋转层上会跟着一起转），
+     内层放大成 100vw 见方再居中旋转，保证任何宽度下都盖满整条导航；
+     多出来的部分由外层的 overflow: hidden 裁掉，不会撑出横向滚动。 */
+  .nav-dots {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 16%,
+      #000 84%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 16%,
+      #000 84%,
+      transparent
+    );
+  }
+
+  .nav-dots::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 100vw;
+    height: 100vw;
+    transform: translate(-50%, -50%) rotate(45deg);
+    background-image: radial-gradient(
+      circle,
+      rgb(var(--nav-dot-rgb) / var(--nav-dot-alpha)) 0 1.1px,
+      transparent 1.5px
+    );
+    background-size: 13px 13px;
+  }
+
+  /* 底边线 = 一道黄胶带边：中间实、两端透明，让导航像是「浮」在页面之上，
+     而不是被一条实线硬生生切断。
+     不用顶边线——液态玻璃的倒角内高光已经在顶部压了一条白线，再加会打架。 */
+  .nav-edge-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    pointer-events: none;
+    z-index: 1;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--c-brand-edge-rgb) / var(--nav-edge-alpha)) 50%,
+      transparent
+    );
+  }
+
+  /* ==========================================================================
+     五个入口 —— 一枚专色，三种出场
+
+     物料是「鲜明活泼」的，但把五种亮色直接铺到导航上会立刻变成一道彩虹，
+     整条玻璃条也会失去安静。所以这里给每个入口一枚专色，但**按面积分配出场**：
+
+       默认态  → 只有一枚 5px 的圆点（+ lg 以上的编号），其余仍是页面自己的文字色
+       悬停态  → 透出该入口本色的淡底，文字转白
+       当前页  → 整枚铺成本色的「贴纸」，压墨字
+
+     也就是说：颜色是**随交互长大的**。不看不觉得吵，一动手就很活泼——
+     这是「加入鲜明色彩」与「不破坏整体感觉」之间唯一站得住的解法。
+     ========================================================================== */
+
+  /* 每一枚专色的名字（由 data-key 注入，值在 :root 的 --c-nav1..5 里）。
+     默认给 accent 兜底：日后 navLinks 新增入口忘了配色，也不会变成透明。 */
+  .nav-item {
+    --nav-accent-rgb: var(--c-accent-rgb);
+    --nav-accent: rgb(var(--nav-accent-rgb));
+    transition: background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .nav-item[data-key="persona"] {
+    --nav-accent-rgb: var(--c-nav1-rgb);
+  }
+  .nav-item[data-key="media"] {
+    --nav-accent-rgb: var(--c-nav2-rgb);
+  }
+  .nav-item[data-key="games"] {
+    --nav-accent-rgb: var(--c-nav3-rgb);
+  }
+  .nav-item[data-key="token"] {
+    --nav-accent-rgb: var(--c-nav4-rgb);
+  }
+  .nav-item[data-key="materials"] {
+    --nav-accent-rgb: var(--c-nav5-rgb);
+  }
+
+  /* 浅色主题：亮色在白色玻璃上做「小面积标记」会糊掉（黄点最明显），
+     所以只把标记色往墨里压一档。**贴纸填充不压**——它面积够大、又压着墨字，
+     保持原色才够鲜明。 */
+  [data-theme="light"] .nav-item {
+    --nav-accent: color-mix(in srgb, rgb(var(--nav-accent-rgb)) 74%, #111);
+  }
+
+  /* 入口前那枚专色圆点：默认态唯一常驻的颜色。
+     一圈极淡的墨色键线既是贴纸的切口感，也保证亮色在浅底上仍有轮廓。 */
+  .nav-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: var(--r-pill);
+    background-color: var(--nav-accent);
+    box-shadow: inset 0 0 0 1px rgb(var(--c-brand-ink-rgb) / 0.16);
+  }
+
+  /* 入口编号（lg 以上）：同样吃这枚专色，位置比圆点更靠内 */
+  .nav-index {
+    color: var(--nav-accent);
+  }
+
+  /* 悬停 = 一枚「只描边、还没贴上去」的同色贴纸：淡底 + 1px 本色键线。
+     只给淡底的话，12% 的彩度会被深玻璃洗成一层灰，色相根本读不出来；
+     键线才是把那点颜色真正说出来的一笔——它也正是贴纸的切口感。
+     （浅色主题下 --nav-accent 已经被压深，键线自动跟着走。） */
+  .nav-item:not(.nav-item-active):hover {
+    background-color: rgb(var(--nav-accent-rgb) / var(--nav-hover-alpha));
+    box-shadow: inset 0 0 0 1px
+      color-mix(in srgb, var(--nav-accent) 46%, transparent);
+  }
+
+  /* 当前页 = 一张贴上去的贴纸：本色的底 + 墨字 + 顶部倒角高光。
+     五枚专色都够亮，所以墨字（#111）在所有色上都远超 AA。 */
+  .nav-item-active {
+    background-color: rgb(var(--nav-accent-rgb));
+    color: rgb(var(--c-brand-ink-rgb));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45),
+      0 1px 2px rgb(0 0 0 / 0.3);
+  }
+
+  /* 贴纸铺满后，圆点与编号都要从本色退成墨色，否则会消失在底色里 */
+  .nav-item-active .nav-dot {
+    background-color: rgb(var(--c-brand-ink-rgb) / 0.5);
+    box-shadow: none;
+  }
+
+  .nav-item-active .nav-index {
+    color: rgb(var(--c-brand-ink-rgb) / 0.55);
+  }
+
+  /* 浅底上贴纸要和白色导航条拉开，阴影得再实一点，
+     否则色块看起来像「印刷溢色」而不是一张贴上去的纸。 */
+  [data-theme="light"] .nav-item-active {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6),
+      0 1px 3px rgb(15 23 42 / 0.22);
+  }
+
+  /* 标语按钮：把 <button> 的默认外观完全抹掉，
+     让逐字内容看起来仍是一段普通标题文字。
+     `font: inherit` 是关键——button 默认不继承字号，
+     不写会把 52px 的标语打回浏览器默认的 13px。 */
+  .statement-button {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-align: inherit;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* 焦点环退远一点：紧贴 52px 的汉字画一圈 2px 轮廓会显得很脏 */
+  .statement-button:focus-visible {
+    outline-offset: 10px;
+    border-radius: 4px;
+  }
+
+  /* ==========================================================================
+     X.物料 —— 玻璃展示柜（纯 CSS 3D）
+
+     Cyrus 的要求：把原来的「抽屉柜」换成一座实际的玻璃展示柜，加入 3D 渲染，
+     点柜门可以开启，打开后点柜里的展品可以查看信息。
+
+     柜体是真用 3D 变换搭出来的箱体：背板 + 左右侧板 + 顶 + 底 + 四层层板 + 底座，
+     正面两扇玻璃门各自绕自己的铰链 rotateY 打开。展品是已去背的透明图，
+     立在层板上；被选中那件推到玻璃前并打一束聚光，其余压暗。
+
+     ⚠️ 三条铁律，犯一条整个柜子就会坍成一张平面：
+       1. preserve-3d 的**祖先**不能有 overflow / clip-path / mask / filter，
+          浏览器遇到这些会强制 flatten。
+       2. 整体缩放必须用 scale3d；只缩 x/y 会让侧板与正面的进深对不上。
+       3. 玻璃的通透只能靠带 alpha 的背景与渐变，**不要用 opacity**
+          （opacity 会拍平该元素的子树）。展品是叶子节点，压暗才可以用 opacity。
+     坐标系：x∈[0,--case-w] 左→右，y∈[0,--case-h] 上→下，z∈[0,--case-d] 背→前。
+     ========================================================================== */
+
+  /* 裁切层：只裁掉柜门甩出画框的部分，并承载由 JS 算来的实际高度。
+     它是 3D 上下文的**祖先**而不是参与者，所以这里用 overflow 是安全的。 */
+  .vitrine-clip {
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 缩放层：把固定设计尺寸（1040×860）的整体投影等比缩到可用宽度。
+     perspective 挂在这一层，作用对象是它下面的 .vitrine。
+     之所以整体缩放而不是改柜体尺寸：柜子是 44rem 的实体，窄屏上等比缩小
+     才不会把 11 件展品挤成一团，而 CSS 拿不到容器宽度，只能交给 JS。 */
+  .vitrine-scale {
+    position: relative;
+    left: 50%;
+    width: 1040px;
+    height: 860px;
+    margin-left: -520px;
+    transform-origin: 50% 0;
+    transform: scale3d(
+      var(--case-scale, 1),
+      var(--case-scale, 1),
+      var(--case-scale, 1)
+    );
+  }
+
+  /* 透视相机。景深刻意做得克制（2700px）：柜门甩到镜头前（z≈466px）时会被透视放大，
+     透视一强门就会顶出画框。2400 实测门顶溢出约 40px，2700 才是
+     「柜子还有箱体感」与「门不出框」之间的平衡点。 */
+  .vitrine-stage {
+    position: absolute;
+    inset: 0;
+    perspective: 2700px;
+    perspective-origin: 50% 44%;
+  }
+
+  /* 柜体落地阴影。画在 3D 上下文之外——.vitrine-stage 只有 perspective、
+     没有 preserve-3d，它的伪元素是一张普通 2D 平面，压在所有柜体面之下。
+     ⚠️ 千万别用 filter: blur 来虚化它：filter 会给这个 perspective 容器另开一个
+     包含块并**拍平子树**，整个柜子会当场坍成一张平面。
+     所以阴影只能靠 radial-gradient 自己虚化，再推远一点（translateZ 负值）确保在后。 */
+  .vitrine-stage::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 700px;
+    width: 880px;
+    height: 168px;
+    margin-left: -440px;
+    transform: translateZ(-30px);
+    border-radius: 50%;
+    /* ⚠️ 半径必须写 `ellipse 50% 50%`（按盒子尺寸取），不能用 `closest-side`——
+       那会取到较短的那条半径（84px），阴影会缩成一枚圆点。 */
+    background-image: radial-gradient(
+      ellipse 50% 50% at 50% 50%,
+      rgb(0 0 0 / var(--case-shadow-alpha)) 0%,
+      rgb(0 0 0 / 0) 74%
+    );
+    pointer-events: none;
+  }
+
+  .vitrine {
+    --case-w: 44rem;
+    --case-h: 40rem;
+    --case-d: 8rem;
+    --tier-h: 10rem;
+    --tier-z: 3rem;
+    --plinth-h: 2.5rem;
+
+    position: absolute;
+    left: 50%;
+    /* top 不是「摆在哪好看」，而是「给甩出的柜门留多少余地」：
+       门开到底时门扇前甩到 z≈466px，被透视放大后顶出画框约 27px。
+       860 高的画布里留 120 的顶距才收得住，顺带让柜体的竖直中心更贴近画布中心。 */
+    top: 120px;
+    width: var(--case-w);
+    height: var(--case-h);
+    margin-left: calc(var(--case-w) / -2);
+    transform-style: preserve-3d;
+    /* 略微俯视 + 向右偏 15°：不偏看不出这是个箱子，偏多了展品会被侧板吃掉 */
+    transform: rotateX(3deg) rotateY(-15deg);
+  }
+
+  .vt-face {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* ---- 内腔 ---- */
+  /* 背板同时承担「射灯」：顶部一片极淡的暖光往下迅速收干，
+     读起来就是柜顶灯带打下来的那一片。 */
+  .vt-back {
+    left: 0;
+    top: 0;
+    width: var(--case-w);
+    height: var(--case-h);
+    background-image:
+      radial-gradient(
+        ellipse 74% 46% at 50% 0%,
+        rgb(var(--c-case-led-rgb) / calc(var(--case-led-alpha) * 0.55)),
+        transparent 72%
+      ),
+      /* 竖向拉丝：贴得很密（4px 一周期），在深底上几乎看不见，
+         但把「一块塑料板」和「一块金属背板」区分开了 */
+        repeating-linear-gradient(
+          90deg,
+          rgb(var(--c-case-brush-rgb) / var(--case-brush-alpha)) 0 1px,
+          transparent 1px 5px
+        ),
+      linear-gradient(
+        180deg,
+        rgb(var(--c-case-side-rgb)) 0%,
+        rgb(var(--c-case-back-rgb)) 52%,
+        rgb(var(--c-case-back-rgb)) 100%
+      );
+    box-shadow: inset 0 0 110px rgb(0 0 0 / 0.55);
+  }
+
+  [data-theme="light"] .vt-back {
+    box-shadow: inset 0 0 90px rgb(15 23 42 / 0.1);
+  }
+
+  .vt-side {
+    top: 0;
+    width: var(--case-d);
+    height: var(--case-h);
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-case-side-rgb)) 0%,
+      rgb(var(--c-case-back-rgb)) 68%
+    );
+  }
+
+  .vt-left {
+    left: 0;
+    transform-origin: left center;
+    transform: rotateY(-90deg);
+    box-shadow: inset -14px 0 26px -14px rgb(0 0 0 / 0.6);
+  }
+
+  .vt-right {
+    left: calc(var(--case-w) - var(--case-d));
+    transform-origin: right center;
+    transform: rotateY(90deg);
+    box-shadow: inset 14px 0 26px -14px rgb(0 0 0 / 0.6);
+  }
+
+  .vt-ceil {
+    left: 0;
+    top: calc(var(--case-d) * -1);
+    width: var(--case-w);
+    height: var(--case-d);
+    transform-origin: bottom center;
+    transform: rotateX(-90deg);
+    background-image: linear-gradient(
+      0deg,
+      rgb(var(--c-case-back-rgb)) 0%,
+      rgb(var(--c-case-side-rgb)) 100%
+    );
+  }
+
+  .vt-floor {
+    left: 0;
+    top: var(--case-h);
+    width: var(--case-w);
+    height: var(--case-d);
+    transform-origin: top center;
+    transform: rotateX(90deg);
+    background-image: linear-gradient(
+      0deg,
+      rgb(var(--c-case-shelf-rgb)) 0%,
+      rgb(var(--c-case-back-rgb)) 100%
+    );
+  }
+
+  /* 柜顶灯带：贴在顶板前沿的一条细线 */
+  .vt-led {
+    left: 10%;
+    top: 0.4rem;
+    width: 80%;
+    height: 3px;
+    border-radius: var(--r-pill);
+    transform: translateZ(calc(var(--case-d) - 1.4rem));
+    background-color: rgb(var(--c-case-lamp-rgb) / var(--case-led-core-alpha));
+    box-shadow: 0 0 20px 5px rgb(var(--c-case-lamp-rgb) / var(--case-led-alpha));
+    transition: box-shadow var(--case-open-dur) var(--ease-out);
+  }
+
+  /* 开门时灯带晕开一圈：「推开门，灯跟着亮」 */
+  .vitrine[data-open="true"] .vt-led {
+    box-shadow: 0 0 28px 9px rgb(var(--c-case-lamp-rgb) / var(--case-led-open-alpha));
+  }
+
+  /* ---- 柜内细节：开柜柔光 + 两侧灯带 ---- */
+  /* 一片贴在背板前的柔光。合上门时 opacity 0，开门才亮起来——
+     「推开门，柜里的灯跟着亮」比灯常亮更像一座真柜子。
+     它是叶子节点，用 opacity 不会拍平任何子树。 */
+  .vt-glow {
+    left: 0;
+    top: 0;
+    width: var(--case-w);
+    height: var(--case-h);
+    transform: translateZ(0.2rem);
+    opacity: 0;
+    background-image: radial-gradient(
+      ellipse 88% 58% at 50% 6%,
+      rgb(var(--c-case-led-rgb) / var(--case-glow-alpha)),
+      transparent 74%
+    );
+    transition: opacity var(--case-open-dur) var(--ease-out);
+  }
+
+  .vitrine[data-open="true"] .vt-glow {
+    opacity: 1;
+  }
+
+  /* 内腔两侧的竖向灯带：贴着开口内侧的左右边，一条从暗到亮再到暗的线 */
+  .vt-glowbar {
+    top: 1.6rem;
+    width: 3px;
+    height: calc(var(--case-h) - 3.2rem);
+    border-radius: var(--r-pill);
+    transform: translateZ(calc(var(--case-d) - 0.8rem));
+    background-image: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgb(var(--c-case-lamp-rgb) / var(--case-glowbar-alpha)) 22%,
+      rgb(var(--c-case-lamp-rgb) / calc(var(--case-glowbar-alpha) * 1.25)) 50%,
+      rgb(var(--c-case-lamp-rgb) / var(--case-glowbar-alpha)) 78%,
+      transparent 100%
+    );
+    box-shadow: 0 0 14px 2px rgb(var(--c-case-lamp-rgb) / calc(var(--case-glowbar-alpha) * 0.5));
+    opacity: 0;
+    transition: opacity var(--case-open-dur) var(--ease-out);
+  }
+
+  .vt-glowbar-left {
+    left: 0.55rem;
+  }
+
+  .vt-glowbar-right {
+    right: 0.55rem;
+  }
+
+  .vitrine[data-open="true"] .vt-glowbar {
+    opacity: 1;
+  }
+
+  /* ---- 四层层板 ---- */
+  .vt-shelf {
+    left: 0;
+    top: var(--sy);
+    width: var(--case-w);
+    height: var(--case-d);
+    transform-origin: top center;
+    transform: rotateX(90deg);
+    background-image: linear-gradient(
+      0deg,
+      rgb(var(--c-case-shelf-rgb)) 0%,
+      rgb(var(--c-case-back-rgb)) 100%
+    );
+  }
+
+  /* 层板前沿：给层板一点厚度，并在前沿点一道灯。
+     没有这条边，层板在带角度的视角下会变成一张看不见的纸。 */
+  .vt-shelf-lip {
+    left: 0;
+    top: calc(var(--sy) - 7px);
+    width: var(--case-w);
+    height: 7px;
+    transform: translateZ(var(--case-d));
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-case-shelf-rgb)) 0%,
+      rgb(var(--c-case-back-rgb)) 100%
+    );
+    box-shadow: inset 0 1px 0 rgb(var(--c-case-led-rgb) / 0.35),
+      0 -7px 16px -6px rgb(var(--c-case-led-rgb) / var(--case-led-alpha));
+  }
+
+  /* ---- 底座 ---- */
+  .vt-plinth {
+    top: var(--case-h);
+    height: var(--plinth-h);
+    background-color: rgb(var(--c-case-frame-rgb));
+  }
+
+  .vt-plinth-front {
+    left: 0;
+    width: var(--case-w);
+    transform: translateZ(var(--case-d));
+    border-radius: 0 0 12px 12px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-case-frame-rgb)) 0%,
+      rgb(var(--c-case-back-rgb)) 100%
+    );
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  }
+
+  /* 底座正面的厂牌：一枚刻着字的小铝牌，给底座一个「身份」。
+     文案取自 content.ts 的 brand.name，组件里不写死。 */
+  .vt-nameplate {
+    left: 50%;
+    top: calc(var(--case-h) + 0.95rem);
+    padding: 0.15rem 0.62rem;
+    border-radius: 3px;
+    transform: translate3d(-50%, 0, calc(var(--case-d) + 0.25rem));
+    font-size: 0.6rem;
+    line-height: 1.4;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: rgb(var(--c-case-label-rgb) / 0.34);
+    background-color: rgb(var(--c-case-label-rgb) / 0.05);
+    box-shadow: inset 0 0 0 1px rgb(var(--c-case-label-rgb) / 0.1);
+  }
+
+  /* 踢脚高光：底座下沿一条亮线，柜子与地面之间才有「收口」 */
+  .vt-plinth-front::after {
+    content: "";
+    position: absolute;
+    left: 1.1rem;
+    right: 1.1rem;
+    bottom: 0.45rem;
+    height: 1px;
+    background-color: rgb(var(--c-case-label-rgb) / 0.15);
+  }
+
+  /* 底座上的电源指示灯：很小一枚，只为让底座不止是一块板 */
+  .vt-plinth-front::before {
+    content: "";
+    position: absolute;
+    right: 1.3rem;
+    top: 0.9rem;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: rgb(var(--c-accent-bright-rgb) / 0.65);
+    box-shadow: 0 0 7px 1px rgb(var(--c-accent-bright-rgb) / 0.3);
+  }
+
+  .vt-plinth-left {
+    left: 0;
+    width: var(--case-d);
+    transform-origin: left center;
+    transform: rotateY(-90deg);
+  }
+
+  .vt-plinth-right {
+    left: calc(var(--case-w) - var(--case-d));
+    width: var(--case-d);
+    transform-origin: right center;
+    transform: rotateY(90deg);
+  }
+
+  /* 层号铭牌：贴在背板左上角，像陈列柜里那枚刻着层号的铝牌 */
+  .vt-tier-tag {
+    left: 1.5rem;
+    top: calc(var(--sy) - var(--tier-h) + 0.6rem);
+    transform: translateZ(0.3rem);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--c-case-label-rgb) / 0.3);
+  }
+
+  .vt-tier-tag::before {
+    content: "";
+    width: 0.85rem;
+    height: 2px;
+    border-radius: var(--r-pill);
+    background-color: rgb(var(--c-case-label-rgb) / 0.22);
+  }
+
+  /* ---- 正面外框 ---- */
+  .vt-frame {
+    left: 0;
+    top: 0;
+    width: var(--case-w);
+    height: var(--case-h);
+    transform: translateZ(calc(var(--case-d) + 2px));
+    border: 9px solid rgb(var(--c-case-frame-rgb));
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.45),
+      0 0 0 1px rgb(0 0 0 / 0.3);
+  }
+
+  /* 外框左右立柱的倒角：一道亮边 + 一道暗边，框就从「一圈色块」变成一根型材 */
+  .vt-mullion {
+    top: 0;
+    width: 9px;
+    height: var(--case-h);
+    transform: translateZ(calc(var(--case-d) + 3px));
+  }
+
+  .vt-mullion-left {
+    left: 0;
+    border-radius: 12px 0 0 12px;
+    background-image: linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.11) 0%,
+      rgb(0 0 0 / 0.2) 100%
+    );
+  }
+
+  .vt-mullion-right {
+    right: 0;
+    border-radius: 0 12px 12px 0;
+    background-image: linear-gradient(
+      270deg,
+      rgb(255 255 255 / 0.11) 0%,
+      rgb(0 0 0 / 0.2) 100%
+    );
+  }
+
+  /* 顶冠檐口：柜顶前沿压一条檐。柜子从「一个箱子」变成「一件家具」。 */
+  .vt-crown {
+    left: -0.4rem;
+    top: -0.75rem;
+    width: calc(var(--case-w) + 0.8rem);
+    height: 1.05rem;
+    transform: translateZ(calc(var(--case-d) + 0.4rem));
+    border-radius: 7px 7px 3px 3px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.15) 0%,
+      rgb(var(--c-case-frame-rgb)) 34%,
+      rgb(var(--c-case-back-rgb)) 100%
+    );
+    box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.7),
+      inset 0 1px 0 rgb(255 255 255 / 0.18);
+  }
+
+  /* 铰链：金属长条，留在柜体上（门开合时不跟着走），
+     位置对齐柜门 transform-origin 的那条轴（left/right: 0.75rem）。
+     第一层 repeating-gradient 是每 26px 一道压痕——让它读成一根「合页」，
+     而不是一根发亮的胶条。 */
+  .vt-hinge {
+    top: 7rem;
+    width: 0.34rem;
+    height: calc(var(--case-h) - 14rem);
+    transform: translateZ(calc(var(--case-d) + 0.45rem));
+    border-radius: var(--r-pill);
+    background-image:
+      repeating-linear-gradient(
+        180deg,
+        rgb(0 0 0 / 0.3) 0 2px,
+        rgb(0 0 0 / 0) 2px 26px
+      ),
+      linear-gradient(
+        90deg,
+        rgb(var(--c-case-frame-rgb)) 0%,
+        rgb(255 255 255 / 0.2) 46%,
+        rgb(var(--c-case-frame-rgb)) 100%
+      );
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.45),
+      inset 0 1px 0 rgb(255 255 255 / 0.2);
+  }
+
+  .vt-hinge-left {
+    left: 0.72rem;
+  }
+
+  .vt-hinge-right {
+    right: 0.72rem;
+  }
+
+  /* ---- 展品 ---- */
+  /* 一层展品 = 一张竖立的平面，用 flex 在平面内横向排布，
+     底边贴齐层板（层板在 y = --sy）。展品高度由 --ih 定，
+     宽度交给图片自身的比例。 */
+  .vt-tier {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--case-w);
+    height: var(--tier-h);
+    transform-style: preserve-3d;
+    transform: translate3d(0, calc(var(--sy) - var(--tier-h)), var(--tier-z));
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0 1.25rem;
+    box-sizing: border-box;
+  }
+
+  /* 展品盒的尺寸不再由 <img> 撑开，而是由 --iw / --ih 显式给定
+     （--iw 在组件里按图片固有比例反算，见 Materials.tsx）。
+     图片解码完成之前，盒子就已经定型——热区平面因此有一个确定的尺寸，
+     不会出现「图片还没到、可点范围是 0」的窗口期。 */
+  .vitrine-item {
+    position: relative;
+    flex: 0 0 auto;
+    width: var(--iw);
+    height: var(--ih);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transform: translateZ(0);
+    transition: transform var(--case-item-dur) var(--ease-out),
+      opacity var(--case-item-dur) var(--ease-out);
+  }
+
+  .vitrine-item img {
+    display: block;
+    height: 100%;
+    width: 100%;
+    max-width: none;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 9px rgb(0 0 0 / 0.45));
+    transition: filter var(--case-item-dur) var(--ease-out);
+  }
+
+  /* 热区平面：**一件展品一块**，铺满展品盒，与图片完全解耦。
+     以前命中是「图片自己的盒子」在承担——那意味着可点范围等于图片的固有尺寸，
+     图片解码前后还会变。现在它是一块独立的矩形平面：
+       · 尺寸由 --iw/--ih 决定，与图片解码状态无关；
+       · 底色给一个极淡的填充，让整块区域都算「被绘制」；
+       · 不参与任何过渡——悬停时热区绝不能跟着动，否则鼠标会「追不上」。
+     展品图形内部的空隙（例如两款手机壳之间）本来就落在这块平面之内，
+     所以整幅都是可点区域。 */
+  .vitrine-hit {
+    position: absolute;
+    /* 铺满展品盒，不外扩。
+       实测过外扩 0.35rem（5.6px）：命中率**一点没变**——残余的那几格丢在
+       「外接矩形四角/斜边之外」，那是旋转过的矩形在投影里必然留下的空区（几何），
+       不是热区不够大。既然没好处，就别外扩：同层展品间距只有 1rem，
+       外扩会让相邻两件互相抢点击。 */
+    inset: 0;
+    background-color: rgb(var(--c-case-hit-rgb) / var(--case-hit-alpha));
+  }
+
+  /* 聚光层：只负责「被选中 / 悬停」的可视反馈，不再兼职热区。
+     它是叶子节点，用 opacity 做显隐不会拍平任何子树。 */
+  .vitrine-halo {
+    position: absolute;
+    inset: -0.7rem -0.45rem;
+    border-radius: 0.9rem;
+    opacity: 0;
+    pointer-events: none;
+    background-image: radial-gradient(
+      ellipse 60% 56% at 50% 58%,
+      rgb(var(--c-accent-bright-rgb) / var(--case-halo-alpha)),
+      transparent 72%
+    );
+    transition: opacity var(--case-item-dur) var(--ease-out);
+  }
+
+  .vitrine-item:hover .vitrine-halo {
+    opacity: 0.55;
+  }
+
+  .vitrine-item:hover {
+    transform: translateZ(1.4rem);
+  }
+
+  .vitrine-item:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 6px;
+  }
+
+  /* 选中：往前推到玻璃前 + 略微放大 + 打一束聚光。
+     往前推的那一段距离，就是「从柜子里拿出来给你看」的暗示。 */
+  .vitrine-item[aria-pressed="true"] {
+    transform: translateZ(2.9rem) scale(1.05);
+  }
+
+  .vitrine-item[aria-pressed="true"] .vitrine-halo {
+    opacity: 1;
+  }
+
+  .vitrine-item[aria-pressed="true"] img {
+    filter: drop-shadow(0 12px 14px rgb(0 0 0 / 0.5));
+  }
+
+  /* 有展品被选中时，其余压暗。
+     ⚠️ 这里用 opacity 是安全的：展品是叶子节点，没有 3D 子元素会被拍平。 */
+  .vitrine[data-selected="true"] .vitrine-item:not([aria-pressed="true"]) {
+    opacity: var(--case-dim-alpha);
+  }
+
+  /* ---- 玻璃柜门 ---- */
+  /* 门的通透感全部来自「带 alpha 的底色 + 一道斜向镜面反光」，
+     不用 backdrop-filter——它会在 3D 上下文里另开一个背景根，得不偿失。 */
+  .vitrine-door {
+    position: absolute;
+    top: 0;
+    width: calc(50% - 1.1rem);
+    height: var(--case-h);
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1px solid rgb(var(--c-case-frame-rgb) / var(--case-glass-edge-alpha));
+    border-radius: 10px;
+    background-image: linear-gradient(
+      148deg,
+      rgb(var(--c-case-glass-rgb) / var(--case-glass-hi-alpha)) 0%,
+      rgb(var(--c-case-glass-rgb) / 0.015) 34%,
+      rgb(var(--c-case-glass-rgb) / 0.015) 66%,
+      rgb(var(--c-case-glass-rgb) / calc(var(--case-glass-hi-alpha) * 0.45)) 100%
+    );
+    background-color: rgb(var(--c-case-glass-rgb) / var(--case-glass-alpha));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24),
+      inset 0 0 0 1px rgb(var(--c-case-glass-rgb) / 0.05),
+      0 12px 34px rgb(0 0 0 / 0.3);
+    transition: transform var(--case-open-dur) var(--ease-out),
+      box-shadow var(--dur-base) var(--ease-out);
+  }
+
+  /* 门框 */
+  .vitrine-door::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 5px solid rgb(var(--c-case-frame-rgb));
+    border-radius: 9px;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14);
+  }
+
+  /* 把手 */
+  .vitrine-door::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 0.3rem;
+    height: 3rem;
+    border-radius: var(--r-pill);
+    transform: translateY(-50%);
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--c-case-frame-rgb) / 0.55),
+      rgb(var(--c-case-frame-rgb))
+    );
+  }
+
+  .vt-door-left {
+    left: 0.75rem;
+    transform-origin: left center;
+    transform: translateZ(calc(var(--case-d) + 4px)) rotateY(0deg);
+  }
+
+  .vt-door-left::after {
+    right: 0.45rem;
+  }
+
+  .vt-door-right {
+    right: 0.75rem;
+    transform-origin: right center;
+    transform: translateZ(calc(var(--case-d) + 4px)) rotateY(0deg);
+  }
+
+  .vt-door-right::after {
+    left: 0.45rem;
+  }
+
+  /* 打开：两扇门各自绕外侧铰链甩开。
+     88° 而不是 90°——柜体本身偏了 -15°，门在「箱体偏转 × 透视放大」下，
+     90° 时外侧门边会顶出裁切框左缘 15px，88° 正好把它收回来；
+     而 88° 的门面仍朝向观众，看得出是一块打开到底的玻璃板。 */
+  .vitrine[data-open="true"] .vt-door-left {
+    transform: translateZ(calc(var(--case-d) + 4px)) rotateY(-88deg);
+  }
+
+  .vitrine[data-open="true"] .vt-door-right {
+    transform: translateZ(calc(var(--case-d) + 4px)) rotateY(88deg);
+  }
+
+  /* 门开了就不再拦点击，把交互交给柜里的展品 */
+  .vitrine[data-open="true"] .vitrine-door {
+    pointer-events: none;
+  }
+
+  /* ==========================================================================
+     X.收藏 第二工位 —— 官方服装挂架（纯 CSS 3D）
+
+     Cyrus：「增加一个 3D 渲染的衣架，挂着我们做好的衣服，点击衣服时切到近景
+     看正面和背面」「尺码暂缓，但衣架要设计大一点」。
+
+     结构：
+       .apparel-clip    裁切层（3D 上下文的**祖先**，用 overflow 安全）
+         .apparel-scale 设计画布 1200×880，整体 scale3d 缩到容器宽度
+           .apparel-stage 透视相机
+             .ap-frame     衣架：4 立柱 + 前后 2 横杆 + 2 纵梁 + 2 只脚
+             .ap-shadow    落地投影
+             .ap-garment   衣服：挂钩 + 两块布（±18px 厚）+ 命中平面
+
+     ⚠️ 与展示柜共用的三条铁律照旧：preserve-3d 祖先不许 filter/overflow/
+        mask/clip-path；整体缩放只用 scale3d；通透不许用 opacity——
+        所以「近景把衣架压暗」压的是**每一块叶子平面**的 opacity，
+        而不是 .ap-frame 的（那会当场把衣架拍成一张平面）。
+     ========================================================================== */
+
+  .apparel-clip {
+    position: relative;
+    overflow: hidden;
+    /* 远景/近景的舞台高度不同（近景要放下被放大的衣服）。高度是 JS 给的，
+       这里只负责让它跟着衣服一起长，别"啪"地跳一下。 */
+    transition: height var(--ap-move-dur) var(--ease-out);
+  }
+
+  .apparel-scale {
+    position: relative;
+    left: 50%;
+    width: 1200px;
+    height: 880px;
+    margin-left: -600px;
+    transform-origin: 50% 0;
+    transform: scale3d(var(--ap-scale, 1), var(--ap-scale, 1), var(--ap-scale, 1));
+  }
+
+  /* 透视比展示柜更近一点（2000px）：衣架是开敞结构，透视弱了那 160px 的
+     前后进深会看不出来。 */
+  .apparel-stage {
+    position: absolute;
+    inset: 0;
+    perspective: 2000px;
+    perspective-origin: 50% 42%;
+  }
+
+  /* 地面：一片极淡的椭圆光，把架子"放在地上"而不是浮在页面里。
+     画在 3D 上下文之外，是普通 2D 平面。 */
+  .apparel-floor {
+    position: absolute;
+    left: 50%;
+    top: 600px;
+    width: 1080px;
+    height: 280px;
+    margin-left: -540px;
+    background-image: radial-gradient(
+      ellipse 50% 50% at 50% 50%,
+      rgb(var(--c-ap-floor-rgb) / var(--ap-floor-alpha)) 0%,
+      rgb(var(--c-ap-floor-rgb) / 0) 72%
+    );
+    pointer-events: none;
+  }
+
+  .apparel-scene {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    /* 略微偏一点角度：不偏就只是一张正视图，偏多了右边的立柱会挡住衣服 */
+    transform: rotateY(-14deg);
+  }
+
+  .ap-frame {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+  }
+
+  /* ---- 立柱：26px 的金属管。管身不用圆柱，靠横向明暗渐变假装 ---- */
+  .ap-post {
+    position: absolute;
+    top: 110px;
+    width: 26px;
+    height: 600px;
+    border-radius: 8px;
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--c-ap-metal-dark-rgb)) 0%,
+      rgb(var(--c-ap-metal-rgb)) 22%,
+      rgb(var(--c-ap-metal-hi-rgb)) 40%,
+      rgb(var(--c-ap-metal-rgb)) 62%,
+      rgb(var(--c-ap-metal-dark-rgb)) 100%
+    );
+    box-shadow: 0 2px 10px -4px rgb(0 0 0 / var(--ap-shadow-alpha));
+    transition: opacity var(--ap-dim-dur) linear;
+  }
+
+  .ap-post--fl {
+    left: 96px;
+  }
+  .ap-post--fr {
+    left: 1078px;
+  }
+  .ap-post--bl {
+    left: 96px;
+    transform: translateZ(-160px);
+  }
+  .ap-post--br {
+    left: 1078px;
+    transform: translateZ(-160px);
+  }
+
+  /* ---- 横杆：前杆挂衣服，后杆只负责撑出进深 ---- */
+  .ap-rail {
+    position: absolute;
+    left: 96px;
+    top: 110px;
+    width: 1008px;
+    height: 26px;
+    border-radius: 9px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-ap-metal-dark-rgb)) 0%,
+      rgb(var(--c-ap-metal-rgb)) 26%,
+      rgb(var(--c-ap-metal-hi-rgb)) 46%,
+      rgb(var(--c-ap-metal-rgb)) 70%,
+      rgb(var(--c-ap-metal-dark-rgb)) 100%
+    );
+    box-shadow: 0 3px 12px -5px rgb(0 0 0 / var(--ap-shadow-alpha));
+    transition: opacity var(--ap-dim-dur) linear;
+  }
+
+  .ap-rail--front {
+    transform: translateZ(0px);
+  }
+  .ap-rail--back {
+    transform: translateZ(-160px);
+  }
+
+  /* 底杆：没有它，衣架就只是一个"门框"。四根柱子 + 上下两圈横杆 +
+     前后两排，才是服装店里那台架子的完整轮廓。 */
+  .ap-rail--bot {
+    top: 688px;
+    height: 20px;
+    border-radius: 7px;
+  }
+
+  /* ---- 顶部纵梁：两块 rotateY(90deg) 的平面，把前后两根横杆连起来 ----
+     transform-origin 放在左边：rotateY(90deg) 会把局部 +x 映射到 -z，
+     于是它从立柱位置向后伸 160px，正好接上后杆。 */
+  .ap-cross {
+    position: absolute;
+    left: 96px;
+    top: 110px;
+    width: 160px;
+    height: 26px;
+    transform-origin: 0 50%;
+    transform: rotateY(90deg);
+    border-radius: 6px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-ap-metal-dark-rgb)) 0%,
+      rgb(var(--c-ap-metal-rgb)) 40%,
+      rgb(var(--c-ap-metal-dark-rgb)) 100%
+    );
+    transition: opacity var(--ap-dim-dur) linear;
+  }
+
+  .ap-cross--r {
+    left: 1078px;
+  }
+
+  /* ---- 脚：沿进深方向的两根短横管，架子才站得住 ---- */
+  .ap-foot {
+    position: absolute;
+    left: 96px;
+    top: 692px;
+    width: 168px;
+    height: 16px;
+    transform-origin: 0 50%;
+    transform: rotateY(90deg);
+    border-radius: 7px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-ap-metal-rgb)) 0%,
+      rgb(var(--c-ap-metal-hi-rgb)) 38%,
+      rgb(var(--c-ap-metal-dark-rgb)) 100%
+    );
+    transition: opacity var(--ap-dim-dur) linear;
+  }
+
+  .ap-foot--r {
+    left: 1078px;
+  }
+
+  /* ---- 落地投影：衣服正下方一片柔和的暗影 ---- */
+  .ap-shadow {
+    position: absolute;
+    left: 270px;
+    top: 650px;
+    width: 660px;
+    height: 130px;
+    transform: translateZ(2px);
+    background-image: radial-gradient(
+      ellipse 50% 50% at 50% 50%,
+      rgb(0 0 0 / var(--ap-shadow-alpha)) 0%,
+      rgb(0 0 0 / 0) 70%
+    );
+    transition: opacity var(--ap-move-dur) var(--ease-out);
+    pointer-events: none;
+  }
+
+  /* ---- 衣服 ---- */
+  .ap-garment {
+    position: absolute;
+    left: 365px;
+    top: 158px;
+    width: 470px;
+    height: 485px;
+    transform-style: preserve-3d;
+    /* 以挂钩为中心缩放/旋转：拉近景时衣服是"从挂点往下长大"，不是整体飘走 */
+    transform-origin: 50% 0;
+    transition: transform var(--ap-move-dur) var(--ease-out);
+  }
+
+  .apparel[data-mode="rack"] .ap-garment {
+    transform: translate3d(0, 0, 14px) rotateY(0deg) scale(1);
+  }
+
+  .apparel[data-mode="close"] .ap-garment {
+    transform: translate3d(0, 0, 14px) rotateY(0deg) scale(var(--ap-close, 1.38));
+  }
+
+  /* 挂钩：线条用 currentColor，颜色走令牌，两个主题都看得见。
+     尺寸刻意小——真挂钩就短，长一点就变成"吊在绳子上"。 */
+  .ap-hook {
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    width: 26px;
+    height: 30px;
+    margin-left: -13px;
+    color: rgb(var(--c-ap-hook-rgb));
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
+  /* 两块布。±18px 的厚度不会露馅（侧面是透明的），但翻面的过程中能看出
+     这不是一张纸——转到 90° 时前后两片分别往两个方向退。 */
+  .ap-3d {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform var(--ap-flip-dur) var(--ease-in-out);
+  }
+
+  .ap-3d[data-face="back"] {
+    transform: rotateY(180deg);
+  }
+
+  .ap-side {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .ap-side img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: filter 260ms var(--ease-out);
+  }
+
+  /* 悬停反馈：只提亮一点点。衣服本来就是深色，提亮 10% 刚好读成"光移过去了"，
+     再多就开始发光了（Cyrus 的视觉纪律：不要过亮）。 */
+  .apparel[data-mode="rack"] .ap-garment:hover .ap-side img {
+    filter: brightness(1.1);
+  }
+
+  .ap-side--front {
+    transform: translateZ(18px);
+  }
+
+  .ap-side--back {
+    transform: translateZ(-18px) rotateY(180deg);
+  }
+
+  /* 命中平面：单独一块、不参与翻面，翻到背面时仍然可点 */
+  .ap-hit {
+    position: absolute;
+    inset: 0;
+    transform: translateZ(26px);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  .ap-hit:focus-visible {
+    outline: 2px solid rgb(var(--c-accent-rgb) / 0.9);
+    outline-offset: -4px;
+  }
+
+  /* ---- 近景：衣架压暗（压每一块叶子，绝不压 .ap-frame） ---- */
+  .apparel[data-mode="close"] .ap-post,
+  .apparel[data-mode="close"] .ap-rail,
+  .apparel[data-mode="close"] .ap-cross,
+  .apparel[data-mode="close"] .ap-foot {
+    opacity: 0.42;
+  }
+
+  .apparel[data-mode="close"] .ap-shadow {
+    opacity: 0.3;
+  }
+
+  /* 近景时场景本身不再偏转，衣服正对镜头 */
+  .apparel[data-mode="close"] .apparel-scene {
+    transform: rotateY(-6deg);
+    transition: transform var(--ap-move-dur) var(--ease-out);
+  }
+
+  /* 只给读屏的锚点 */
+  .ap-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ---- 工位牌 / 铭牌行 / 架下说明 ---- */
+  .apparel {
+    --ap-move-dur: 620ms;
+    --ap-flip-dur: 760ms;
+    --ap-dim-dur: 420ms;
+    margin-top: clamp(3.5rem, 7vw, 6rem);
+  }
+
+  .apparel-head {
+    max-width: 46rem;
+  }
+
+  .apparel-title {
+    margin-top: 0.5rem;
+    font-size: var(--text-h2);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--c-text);
+  }
+
+  .apparel-sub {
+    margin-top: 0.6rem;
+    font-size: var(--text-body);
+    color: var(--c-text-muted);
+  }
+
+  .apparel-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.5rem auto 1.25rem;
+    padding: 0.625rem 1rem;
+    max-width: 44rem;
+    border: 1px solid rgb(var(--c-hairline-rgb) / 1);
+    border-radius: var(--radius-panel);
+    background-color: rgb(var(--c-surface-rgb) / 0.4);
+  }
+
+  .apparel-btn {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.375rem 0.875rem;
+    border: 1px solid rgb(var(--c-hairline-rgb) / 1);
+    border-radius: 999px;
+    background-color: rgb(var(--c-surface-rgb) / 0.6);
+    font-size: var(--text-caption);
+    color: var(--c-text);
+    transition:
+      color var(--dur-base) var(--ease),
+      border-color var(--dur-base) var(--ease),
+      background-color var(--dur-base) var(--ease);
+  }
+
+  .apparel-btn:hover {
+    border-color: rgb(var(--c-accent-rgb) / 0.45);
+    color: var(--c-accent-bright);
+  }
+
+  /* 正/背分段控件 */
+  .apparel-faces {
+    display: inline-flex;
+    flex-shrink: 0;
+    padding: 2px;
+    border: 1px solid rgb(var(--c-hairline-rgb) / 1);
+    border-radius: 999px;
+    background-color: rgb(var(--c-surface-rgb) / 0.5);
+  }
+
+  .apparel-faces button {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: var(--text-caption);
+    color: var(--c-text-muted);
+    transition:
+      color var(--dur-base) var(--ease),
+      background-color var(--dur-base) var(--ease);
+  }
+
+  .apparel-faces button[data-on="true"] {
+    background-color: rgb(var(--c-accent-rgb) / 0.16);
+    color: var(--c-accent-text);
+  }
+
+  .apparel-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin: 0 auto;
+    max-width: 44rem;
+  }
+
+  .apparel-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .apparel-specs li {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid rgb(var(--c-hairline-rgb) / 1);
+    border-radius: 999px;
+    background-color: rgb(var(--c-surface-rgb) / 0.6);
+    font-size: var(--text-caption);
+    color: var(--c-text-muted);
+  }
+
+  .apparel-more {
+    font-size: var(--text-caption);
+    color: var(--c-text-muted);
+  }
+
+  /* ==========================================================================
+     X.游戏 —— 投币厅（#/games）
+
+     Cyrus 的要求：**一台**霓虹街机，「点机器（侧视角）切到主视角，在主视角里选一款
+     游戏游玩」，通关后从机身下面的**出球口滚出一颗球**。机身要 3D、细节更多、
+     赛博风格，并要有「侧视 → 主视」的过渡动画。
+
+     结构（详见 sections/Games.tsx 的注释）：
+       .arc3d          透视容器：一个视点、一块地面网格、一圈机身落地的光晕
+         .arc3d-machine  机器组：rotateY 一转就是侧视 ↔ 主视的过渡
+           .arc3d-shell   preserve-3d 的真六面体（前/后/左/右/顶/底）
+             .arc3d-face--front  正面：灯箱 / 屏幕 / 操作台 / 基座出球口
+             .arc3d-enter        侧视角整面可点的「进入」按钮
+             .arc3d-tray         出球口托盘（球滚出来落这儿）
+             .arc3d-ball         兑换球（真 3D：从出球口滚到机台前面）
+
+     三条硬约束：
+     1. `transform-style: preserve-3d` 不能断。任何 `filter` / `opacity < 1` /
+        `overflow: hidden` 都会给子树开新的包含块、把 3D 压平 —— 所以发光一律走
+        `box-shadow` 的低 alpha，不用 `filter: blur`。
+     2. 屏幕的高宽比必须正好 4:3（引擎逻辑分辨率 128×96）。屏幕宽 82% 机身宽、
+        高 38% 机身高，机身高 = 宽 × 1.62 ⇒ 0.82 : (0.38 × 1.62) = 4 : 3。
+        改机身高宽比就得重算这一段。
+     3. 箱体的进深 `--arcade-depth` 是 px（3D 里的 translateZ 不吃百分比），
+        其余零件尺寸走 % ——所以机身宽 `--w` 也用 px 的 clamp 定住，calc 才能算。
+     ========================================================================== */
+
+  .arc3d {
+    /* 机身宽定在 px（clamp）——进深要用 calc(var(--w) / 2) 推到边缘，必须有 px 基准 */
+    --w: clamp(232px, 56vw, 380px);
+    --d: var(--arcade-depth);
+    --h: calc(var(--w) * 1.62);
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1.6rem 0 3.75rem;
+    perspective: 1500px;
+    perspective-origin: 50% 40%;
+  }
+
+  /* 房间光：机身脚下的一圈柔光（2D，铺在 .arc3d 平面上） */
+  .arc3d-aura {
+    position: absolute;
+    left: 50%;
+    bottom: 2.1rem;
+    width: 82%;
+    height: 5.5rem;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background-image: radial-gradient(
+      closest-side,
+      rgb(var(--arcade-hue) / 0.24),
+      transparent 74%
+    );
+    pointer-events: none;
+  }
+
+  /* 赛博地面：一块向后倒下的网格平面，边缘用 mask 淡出 */
+  .arc3d-floor {
+    position: absolute;
+    left: -24%;
+    right: -24%;
+    bottom: 3.4rem;
+    height: 320px;
+    transform-origin: 50% 100%;
+    transform: rotateX(88deg);
+    background-image: linear-gradient(
+        rgb(var(--c-arcade-rim-rgb) / var(--arcade-floor-alpha)) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg,
+        rgb(var(--c-arcade-rim-rgb) / var(--arcade-floor-alpha)) 1px,
+        transparent 1px
+      );
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(72% 82% at 50% 100%, #000 12%, transparent 78%);
+    mask-image: radial-gradient(72% 82% at 50% 100%, #000 12%, transparent 78%);
+    pointer-events: none;
+  }
+
+  /* ---- 机器组：侧视 ↔ 主视的过渡就是这一条 transform ---- */
+  .arc3d-machine {
+    position: relative;
+    width: var(--w);
+    height: var(--h);
+    transform-style: preserve-3d;
+    transform: rotateY(-24deg) rotateX(5deg) translateZ(0) scale(0.96);
+    transition: transform 860ms var(--ease-out);
+    will-change: transform;
+  }
+
+  /* 悬停：机器「转过来」一点，请你投币 */
+  .arc3d[data-view="side"] .arc3d-machine:hover,
+  .arc3d[data-view="side"] .arc3d-machine:focus-within {
+    transform: rotateY(-12deg) rotateX(4deg) translateZ(10px) scale(1);
+  }
+
+  /* 主视（选单 / 游玩）：转正 + 朝你推近。正对之后正面与视线垂直，
+     canvas 是 1:1 缩放，像素不会被 3D 重采样糊掉。 */
+  .arc3d[data-view="front"] .arc3d-machine,
+  .arc3d[data-view="play"] .arc3d-machine {
+    transform: rotateY(0deg) rotateX(0deg) translateZ(34px) scale(1.05);
+  }
+
+  .arc3d-shell {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+  }
+
+  /* ---- 箱体六面 ---- */
+  .arc3d-face {
+    position: absolute;
+    transform-style: preserve-3d;
+  }
+
+  .arc3d-face--front {
+    inset: 0;
+    border-radius: 5px 5px 7px 7px;
+    transform: translateZ(calc(var(--d) / 2));
+    background-image: linear-gradient(
+      178deg,
+      rgb(var(--c-arcade-body-rgb)) 0%,
+      rgb(var(--c-arcade-body-rgb)) 58%,
+      rgb(var(--c-arcade-body-2-rgb)) 100%
+    );
+    box-shadow: inset 0 0 0 1px rgb(var(--arcade-hue) / 0.22),
+      inset 0 1px 0 rgb(255 255 255 / 0.09);
+  }
+
+  .arc3d-face--back {
+    inset: 0;
+    border-radius: 5px;
+    transform: translateZ(calc(var(--d) / -2)) rotateY(180deg);
+    background-color: rgb(var(--c-arcade-shell-3-rgb));
+  }
+
+  .arc3d-face--left,
+  .arc3d-face--right {
+    top: 0;
+    bottom: 0;
+    left: calc(50% - var(--d) / 2);
+    width: var(--d);
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--c-arcade-shell-3-rgb)),
+      rgb(var(--c-arcade-body-2-rgb))
+    );
+  }
+
+  .arc3d-face--left {
+    transform: rotateY(-90deg) translateZ(calc(var(--w) / 2));
+    box-shadow: inset 0 0 0 1px rgb(var(--arcade-hue) / 0.14);
+  }
+
+  .arc3d-face--right {
+    transform: rotateY(90deg) translateZ(calc(var(--w) / 2));
+    box-shadow: inset 0 0 0 1px rgb(var(--arcade-hue) / 0.3);
+  }
+
+  .arc3d-face--top,
+  .arc3d-face--bottom {
+    left: 0;
+    right: 0;
+    top: calc(50% - var(--d) / 2);
+    height: var(--d);
+  }
+
+  .arc3d-face--top {
+    transform: rotateX(90deg) translateZ(calc(var(--h) / 2));
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-arcade-body-2-rgb)),
+      rgb(var(--c-arcade-shell-3-rgb))
+    );
+    box-shadow: inset 0 0 0 1px rgb(var(--arcade-hue) / 0.18);
+  }
+
+  .arc3d-face--bottom {
+    transform: rotateX(-90deg) translateZ(calc(var(--h) / 2));
+    background-color: rgb(var(--c-arcade-shell-3-rgb));
+  }
+
+  /* 三支霓虹：沿用导航「游戏 = 橘」那套分配。每台机器同时给出「装饰原色」与
+     「当文字用时的深色版」两个通道（浅色主题下两者不同）。
+     ⚠️ `.arcade-hue` 挂在 #games-stage 上——顶栏读数、生命点、屏幕下方的实体键
+     都在 `.arc3d` 之外，不把它一起罩进来，那些 `rgb(var(--arcade-hue) / …)`
+     会是非法值、整条声明被静默丢弃（键帽与生命点会变成没上色的灰块）。 */
+  .arc3d[data-game="catch"],
+  .arcade-hue[data-game="catch"],
+  .arc3d-cart[data-game="catch"],
+  .arc3d-ball[data-game="catch"],
+  .arcade-ball[data-game="catch"],
+  .arcade-code[data-game="catch"] {
+    --arcade-hue: var(--c-arcade-neon1-rgb);
+    --arcade-hue-ink: var(--c-arcade-neon1-ink-rgb);
+  }
+
+  .arc3d[data-game="brick"],
+  .arcade-hue[data-game="brick"],
+  .arc3d-cart[data-game="brick"],
+  .arc3d-ball[data-game="brick"],
+  .arcade-ball[data-game="brick"],
+  .arcade-code[data-game="brick"] {
+    --arcade-hue: var(--c-arcade-neon2-rgb);
+    --arcade-hue-ink: var(--c-arcade-neon2-ink-rgb);
+  }
+
+  .arc3d[data-game="snake"],
+  .arcade-hue[data-game="snake"],
+  .arc3d-cart[data-game="snake"],
+  .arc3d-ball[data-game="snake"],
+  .arcade-ball[data-game="snake"],
+  .arcade-code[data-game="snake"] {
+    --arcade-hue: var(--c-arcade-neon3-rgb);
+    --arcade-hue-ink: var(--c-arcade-neon3-ink-rgb);
+  }
+
+  /* ---- 灯箱 ---- */
+  .arc3d-marquee {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 15%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 5px 5px 2px 2px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--arcade-hue) / 0.34),
+      rgb(var(--c-arcade-body-2-rgb)) 72%
+    );
+    box-shadow: inset 0 0 0 1px rgb(var(--arcade-hue) / var(--arcade-edge-alpha)),
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 0 18px rgb(var(--arcade-hue) / var(--arcade-glow-alpha));
+  }
+
+  .arc3d-marquee-text {
+    /* 字号跟着机身宽走（令牌随 .arc3d 继承下来）——机身放大后灯箱字不会显小 */
+    font-size: clamp(0.56rem, calc(var(--w) * 0.036), 0.86rem);
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    white-space: nowrap;
+    /* ⚠️ 不能吃 --c-arcade-pixel-rgb（黑屏上的像素色，近白）：浅色主题的灯箱是浅底，
+       近白字会直接看不见。走 --c-arcade-ink-rgb 跟着主题翻。 */
+    color: rgb(var(--c-arcade-ink-rgb) / 0.95);
+    text-shadow: 0 0 10px rgb(var(--arcade-hue) / var(--arcade-ink-glow-alpha));
+  }
+
+  /* 灯箱里慢慢扫过的一道光带 */
+  .arc3d-marquee-glint {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+      104deg,
+      transparent 38%,
+      rgb(255 255 255 / 0.18) 50%,
+      transparent 62%
+    );
+    transform: translateX(-100%);
+    animation: arcade-sweep var(--arcade-marquee-dur) var(--ease-out) infinite;
+  }
+
+  @keyframes arcade-sweep {
+    0% {
+      transform: translateX(-100%);
+    }
+    55%,
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* ---- 屏幕（比例见文件头第 2 条）---- */
+  .arc3d-screen {
+    position: absolute;
+    left: 9%;
+    right: 9%;
+    top: 17%;
+    height: 38%;
+    overflow: hidden;
+    border-radius: 6px;
+    background-color: rgb(var(--c-arcade-screen-rgb));
+    box-shadow: 0 0 0 4px rgb(var(--c-arcade-body-2-rgb)),
+      0 0 0 5px rgb(var(--arcade-hue) / 0.5),
+      inset 0 0 26px rgb(0 0 0 / 0.85),
+      0 0 22px rgb(var(--arcade-hue) / var(--arcade-glow-alpha));
+  }
+
+  /* 屏幕内沿的一圈金属压边 */
+  .arc3d-bezel {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.09),
+      inset 0 0 18px rgb(0 0 0 / 0.65);
+  }
+
+  .arc3d-canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0.62; /* 待机演示压暗一档，读起来才像「演示」 */
+    image-rendering: pixelated;
+  }
+
+  .arc3d-canvas--play {
+    opacity: 1;
+    animation: arc3d-power 560ms var(--ease-out) both;
+  }
+
+  /* 进主视角·选单那一下：屏幕自上而下扫过一道亮带（「机器转正、屏幕开机」）。
+     侧视角不挂这个动画——开机感只属于「转过来」的那个瞬间。 */
+  .arc3d[data-view="front"] .arc3d-screen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background-image: linear-gradient(
+      180deg,
+      transparent,
+      rgb(var(--arcade-hue) / 0.55),
+      transparent
+    );
+    background-size: 100% 26%;
+    background-repeat: no-repeat;
+    animation: arc3d-boot 720ms var(--ease-out) both;
+  }
+
+  @keyframes arc3d-boot {
+    0% {
+      background-position: 0 -30%;
+      opacity: 0.95;
+    }
+    100% {
+      background-position: 0 130%;
+      opacity: 0;
+    }
+  }
+
+  /* 进主视角·游玩：屏幕「上电」——从一条亮线展开 */
+  @keyframes arc3d-power {
+    0% {
+      opacity: 0;
+      transform: scaleY(0.04) scaleX(1.04);
+    }
+    45% {
+      opacity: 1;
+      transform: scaleY(1.02) scaleX(1);
+    }
+    70% {
+      transform: scaleY(0.985) scaleX(1);
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .arc3d-scan {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+        180deg,
+        rgb(0 0 0 / var(--arcade-scan-alpha)) 0 1px,
+        transparent 1px 3px
+      ),
+      radial-gradient(120% 100% at 50% 0%, rgb(255 255 255 / 0.07), transparent 62%);
+  }
+
+  /* 玻璃反光：屏幕左上角一道斜光，让它读起来是块玻璃罩 */
+  .arc3d-glare {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background-image: linear-gradient(
+      118deg,
+      rgb(255 255 255 / 0.1) 0 18%,
+      transparent 34%
+    );
+  }
+
+  /* 屏幕对角的两枚准星角标——赛博感最便宜也最有效的一笔 */
+  .arc3d-brackets {
+    position: absolute;
+    inset: 7% 8%;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  .arc3d-brackets::before,
+  .arc3d-brackets::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgb(var(--arcade-hue) / 0.7);
+  }
+
+  .arc3d-brackets::before {
+    top: 0;
+    left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .arc3d-brackets::after {
+    right: 0;
+    bottom: 0;
+    border-left: 0;
+    border-top: 0;
+  }
+
+  /* 侧视角的「点击开始」：整面正面都是按钮 */
+  .arc3d-enter {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    transform: translateZ(calc(var(--d) / 2 + 0.6px));
+    border-radius: 5px;
+  }
+
+  .arc3d-enter:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 8px;
+  }
+
+  .arc3d-standby {
+    position: absolute;
+    left: 9%;
+    right: 9%;
+    top: calc(17% + 38% - 2rem);
+    text-align: center;
+    font-size: clamp(0.5rem, calc(var(--w) * 0.03), 0.72rem);
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    color: rgb(var(--c-arcade-pixel-rgb) / 0.92);
+    text-shadow: 0 0 12px rgb(var(--arcade-hue) / 0.9);
+    animation: arcade-blink 1.9s steps(1, end) infinite;
+  }
+
+  @keyframes arcade-blink {
+    0%,
+    58% {
+      opacity: 1;
+    }
+    59%,
+    100% {
+      opacity: 0.12;
+    }
+  }
+
+  /* ---- 主视角·选单：屏幕上摆三款游戏 ---- */
+  .arc3d-select {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 6% 7%;
+    font-size: clamp(0.52rem, calc(var(--w) * 0.038), 0.88rem);
+  }
+
+  .arc3d-select-head {
+    font-size: 0.86em;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-align: center;
+    color: rgb(var(--c-arcade-pixel-rgb) / 0.78);
+  }
+
+  .arc3d-carts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .arc3d-cart {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    width: 100%;
+    margin: 0;
+    padding: 0.34em 0.5em;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    border: 1px solid rgb(var(--arcade-hue) / 0.55);
+    border-radius: 5px;
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--arcade-hue) / 0.2),
+      rgb(0 0 0 / 0.28) 88%
+    );
+    color: rgb(var(--c-arcade-pixel-rgb));
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .arc3d-cart:hover,
+  .arc3d-cart:focus-visible {
+    border-color: rgb(var(--arcade-hue));
+    background-color: rgb(var(--arcade-hue) / 0.16);
+  }
+
+  .arc3d-cart-dot {
+    width: 0.5em;
+    height: 0.5em;
+    flex: none;
+    border-radius: 50%;
+    background-color: rgb(var(--arcade-hue));
+    box-shadow: 0 0 8px rgb(var(--arcade-hue) / 0.8);
+  }
+
+  .arc3d-cart-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05em;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .arc3d-cart-marquee {
+    font-size: 0.78em;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: rgb(var(--c-arcade-pixel-rgb) / 0.68);
+  }
+
+  .arc3d-cart-name {
+    font-size: 1.05em;
+    font-weight: 600;
+  }
+
+  .arc3d-cart-go {
+    flex: none;
+    padding: 0.1em 0.5em;
+    border-radius: var(--r-pill);
+    font-size: 0.8em;
+    font-weight: 700;
+    color: rgb(var(--c-brand-ink-rgb));
+    background-color: rgb(var(--arcade-hue) / 0.92);
+  }
+
+  .arc3d-select-hint {
+    font-size: 0.82em;
+    text-align: center;
+    color: rgb(var(--c-arcade-pixel-rgb) / 0.6);
+  }
+
+  /* ---- 游玩时压在屏幕上的结算横幅（屏幕就是黑的，走屏幕色）---- */
+  .arc3d-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.8rem;
+    text-align: center;
+    background-color: rgb(var(--c-arcade-screen-rgb) / 0.88);
+  }
+
+  .arc3d-overlay-title {
+    font-size: clamp(1.3rem, 4.6vw, 2rem);
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    color: rgb(var(--c-arcade-pixel-rgb));
+    text-shadow: 0 0 18px rgb(var(--arcade-hue) / 0.9);
+  }
+
+  .arc3d-overlay-text {
+    font-size: 0.78rem;
+    color: rgb(var(--c-arcade-pixel-rgb) / 0.72);
+  }
+
+  /* ---- 操作台：投币口 + 摇杆 + 三颗键 ---- */
+  .arc3d-deck {
+    position: absolute;
+    left: -3%;
+    right: -3%;
+    top: 57%;
+    height: 13%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 9%;
+    border-radius: 4px;
+    transform: perspective(220px) rotateX(14deg);
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-arcade-body-rgb)),
+      rgb(var(--c-arcade-body-2-rgb))
+    );
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14),
+      0 0 0 1px rgb(var(--arcade-hue) / 0.32),
+      0 10px 18px -10px rgb(0 0 0 / 0.7);
+  }
+
+  .arc3d-coin {
+    width: 8%;
+    height: 34%;
+    border-radius: 2px;
+    background-color: rgb(0 0 0 / 0.82);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16),
+      0 0 10px rgb(var(--arcade-hue) / 0.45);
+  }
+
+  .arc3d-stick {
+    width: 8%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background-image: radial-gradient(
+      circle at 36% 30%,
+      rgb(255 255 255 / 0.85),
+      rgb(var(--arcade-hue) / 0.92) 46%,
+      rgb(var(--c-arcade-body-2-rgb))
+    );
+    box-shadow: 0 0 12px rgb(var(--arcade-hue) / 0.6);
+  }
+
+  .arc3d-keys {
+    display: flex;
+    gap: 10%;
+  }
+
+  .arc3d-key {
+    width: clamp(0.85rem, calc(var(--w) * 0.05), 1.35rem);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background-image: radial-gradient(
+      circle at 36% 30%,
+      rgb(255 255 255 / 0.75),
+      rgb(var(--c-arcade-neon3-rgb) / 0.9) 52%,
+      rgb(var(--c-arcade-body-2-rgb))
+    );
+    box-shadow: inset 0 -2px 3px rgb(0 0 0 / 0.45);
+  }
+
+  /* ---- 基座：散热格栅 + 出球口 ---- */
+  .arc3d-plinth {
+    position: absolute;
+    left: 5%;
+    right: 5%;
+    top: 72.5%;
+    height: 25%;
+    border-radius: 4px 4px 7px 7px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-arcade-body-2-rgb)),
+      rgb(0 0 0 / 0.5)
+    );
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07),
+      inset 0 12px 18px -14px rgb(var(--arcade-hue) / 0.55);
+  }
+
+  /* 散热格栅 */
+  .arc3d-vent {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 12%;
+    height: 16%;
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.55) 0 3px,
+      transparent 3px 8px
+    );
+    border-radius: 2px;
+    opacity: 0.8;
+  }
+
+  /* 出球口：一块发着霓虹的深色开口 */
+  .arc3d-dispenser {
+    position: absolute;
+    left: 20%;
+    right: 20%;
+    bottom: 9%;
+    height: 42%;
+    border-radius: 4px 4px 6px 6px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.94),
+      rgb(0 0 0 / 0.58)
+    );
+    box-shadow: inset 0 0 0 1px rgb(var(--arcade-hue) / 0.45),
+      inset 0 10px 16px -8px rgb(0 0 0 / 0.9),
+      0 0 16px rgb(var(--arcade-hue) / 0.3);
+  }
+
+  .arc3d-slot {
+    position: absolute;
+    left: 16%;
+    right: 16%;
+    bottom: 24%;
+    height: 5px;
+    border-radius: var(--r-pill);
+    background-color: rgb(0 0 0 / 0.95);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 0 10px rgb(var(--arcade-hue) / 0.55);
+  }
+
+  /* ---- 出球口托盘：球滚出来落这儿 ---- */
+  .arc3d-tray {
+    position: absolute;
+    left: 7%;
+    right: 7%;
+    top: 88%;
+    height: 12%;
+    border-radius: 5px 5px 12px 12px;
+    transform: translateZ(calc(var(--d) / 2 + 4px));
+    background-image: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.8),
+      rgb(0 0 0 / 0.42)
+    );
+    box-shadow: inset 0 4px 10px rgb(0 0 0 / 0.9),
+      inset 0 0 0 1px rgb(var(--c-arcade-rim-rgb) / 0.34),
+      inset 0 -1px 0 rgb(var(--arcade-hue) / 0.3),
+      0 16px 30px -14px rgb(0 0 0 / 0.66);
+  }
+
+  /* 托盘前沿的一道光唇——出球口是这台机器最「赛博」的一处细节 */
+  .arc3d-tray::after {
+    content: "";
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: 6%;
+    height: 2px;
+    border-radius: var(--r-pill);
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--arcade-hue) / 0.9),
+      transparent
+    );
+    opacity: 0.8;
+  }
+
+  /* ---- 兑换球：真 3D，从出球口滚到机台前面 ----
+     球是 shell 的子元素，靠 translateZ 处在机身前方。进球动画从 z 为负
+     （出球口里面、被正面挡住）滚到 z 为正（机身前面），preserve-3d 会按深度遮挡。
+     横向位置走 transform 的 translateX(--dx)：起步 dx=0 正好在**出球口正中**，
+     收尾漂到自己的格位 —— 看起来就是「从出球口滚出来，落到托盘里的空位上」。 */
+  .arc3d-ball {
+    position: absolute;
+    top: 94%;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    margin: -13px 0 0 -13px;
+    padding: 0;
+    font: inherit;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    transform: translate3d(var(--dx, 0px), 0, calc(var(--d) / 2 + 12px));
+    /* 增减球时整排重新居中：让「挪位」是滑过去的，而不是瞬移 */
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  .arc3d-ball:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 5px;
+    border-radius: 50%;
+  }
+
+  .arc3d-ball-sphere {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background-image: radial-gradient(
+      circle at 34% 28%,
+      rgb(255 255 255 / 0.96),
+      rgb(var(--arcade-hue) / 0.98) 42%,
+      rgb(var(--arcade-hue) / 0.42) 100%
+    );
+    box-shadow: inset 0 -6px 10px rgb(0 0 0 / 0.42),
+      0 0 0 1px rgb(var(--arcade-hue) / 0.6),
+      0 0 16px rgb(var(--arcade-hue) / 0.45),
+      0 4px 9px rgb(0 0 0 / 0.5);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .arc3d-ball:hover .arc3d-ball-sphere,
+  .arc3d-ball[data-open="true"] .arc3d-ball-sphere {
+    transform: translateY(-3px) scale(1.08);
+  }
+
+  .arc3d-ball-tag {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.5rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--c-brand-ink-rgb));
+  }
+
+  /* 进球：从出球口（z 负、被正面挡住、x 在出球口正中）滚出来，
+     落到托盘里的格位上弹一下。100% 必须等于静止态的 transform。 */
+  .arc3d-ball[data-arriving="true"] {
+    animation: arc3d-roll 1180ms var(--ease-out) both;
+  }
+
+  @keyframes arc3d-roll {
+    0% {
+      transform: translate3d(0, -104px, calc(var(--d) * -0.55)) scale(0.42);
+      opacity: 0;
+    }
+    14% {
+      opacity: 1;
+    }
+    46% {
+      transform: translate3d(0, -78px, calc(var(--d) * 0.1)) scale(1);
+    }
+    68% {
+      transform: translate3d(var(--dx, 0px), -28px, calc(var(--d) / 2 + 12px)) scale(1);
+    }
+    80% {
+      transform: translate3d(var(--dx, 0px), 5px, calc(var(--d) / 2 + 12px))
+        scale(1.16, 0.84, 1);
+    }
+    90% {
+      transform: translate3d(var(--dx, 0px), -8px, calc(var(--d) / 2 + 12px))
+        scale(0.94, 1.08, 1);
+    }
+    100% {
+      transform: translate3d(var(--dx, 0px), 0, calc(var(--d) / 2 + 12px)) scale(1);
+    }
+  }
+
+  /* ---- 主视角顶栏 / 读数 / 按键（都在机器之外，2D）---- */
+  .arcade-play-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 34rem;
+    margin: 0 auto 1.5rem;
+  }
+
+  .arcade-hud,
+  .arcade-pad,
+  .arcade-play-actions {
+    width: 100%;
+    max-width: 30rem;
+    margin-inline: auto;
+  }
+
+  .arcade-hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1.35rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .arcade-lives {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+  }
+
+  .arcade-life {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background-color: rgb(var(--arcade-hue) / 0.85);
+    box-shadow: 0 0 8px rgb(var(--arcade-hue) / 0.5);
+  }
+
+  .arcade-life[data-spent="true"] {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--c-hairline);
+  }
+
+  .arcade-pad {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.1rem;
+  }
+
+  .arcade-pad-group {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .arcade-play-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+  }
+
+  .arcade-knob {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    font: inherit;
+    border: 1px solid rgb(var(--arcade-hue) / 0.42);
+    border-radius: 0.9rem;
+    background-image: linear-gradient(
+      180deg,
+      rgb(var(--c-arcade-body-rgb)),
+      rgb(var(--c-arcade-body-2-rgb))
+    );
+    /* 同上：键帽跟着主题翻浅翻深，图标就必须走 ink，不能吃黑屏像素色 */
+    color: rgb(var(--c-arcade-ink-rgb) / 0.85);
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 0 rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.12);
+    transition: transform var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .arcade-knob:active,
+  .arcade-knob[data-down="true"] {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.06);
+  }
+
+  .arcade-knob:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 3px;
+  }
+
+  .arcade-knob--action {
+    width: 4.5rem;
+    border-radius: var(--r-pill);
+    border-color: rgb(var(--arcade-hue) / 0.8);
+    background-image: radial-gradient(
+      circle at 50% 26%,
+      rgb(var(--arcade-hue) / 0.95),
+      rgb(var(--arcade-hue) / 0.55)
+    );
+    color: rgb(var(--c-brand-ink-rgb));
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  /* ---- 兑换球出口的台面：读屏与键盘的稳定入口 ---- */
+  .arcade-tray {
+    margin-top: 2.25rem;
+    padding: 1rem 1.15rem 1.15rem;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-lg);
+    background-color: rgb(var(--c-surface-rgb) / 0.4);
+  }
+
+  .arcade-tray-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+  }
+
+  .arcade-tray-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.35rem;
+    border-radius: var(--r-pill);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: normal;
+    color: var(--c-text);
+    background-color: rgb(var(--c-accent-rgb) / 0.16);
+  }
+
+  .arcade-balls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.9rem 1rem;
+    margin-top: 1rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .arcade-ball {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .arcade-ball:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 4px;
+    border-radius: 50%;
+  }
+
+  .arcade-ball-sphere {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    background-image: radial-gradient(
+      circle at 34% 28%,
+      rgb(255 255 255 / 0.92),
+      rgb(var(--arcade-hue) / 0.95) 44%,
+      rgb(var(--arcade-hue) / 0.5) 100%
+    );
+    box-shadow: inset 0 -5px 9px rgb(0 0 0 / 0.35),
+      0 0 0 1px rgb(var(--arcade-hue) / 0.55),
+      0 0 18px rgb(var(--arcade-hue) / 0.4);
+    transition: transform var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .arcade-ball:hover .arcade-ball-sphere {
+    transform: translateY(-3px);
+    box-shadow: inset 0 -5px 9px rgb(0 0 0 / 0.3),
+      0 0 0 1px rgb(var(--arcade-hue) / 0.8),
+      0 0 24px rgb(var(--arcade-hue) / 0.6);
+  }
+
+  .arcade-ball[data-open="true"] .arcade-ball-sphere {
+    transform: translateY(-3px) scale(1.06);
+  }
+
+  .arcade-ball-index {
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--c-muted);
+  }
+
+  .arcade-ball-more {
+    align-self: center;
+    font-size: 0.68rem;
+    color: var(--c-muted);
+  }
+
+  /* ---- 兑换码 ---- */
+  .arcade-code {
+    margin-top: 1.15rem;
+    padding: 1.1rem 1.15rem;
+    border: 1px solid rgb(var(--arcade-hue) / 0.4);
+    border-radius: var(--r-lg);
+    background-image: linear-gradient(
+      140deg,
+      rgb(var(--arcade-hue) / 0.1),
+      transparent 62%
+    );
+    background-color: rgb(var(--c-surface-rgb) / 0.5);
+  }
+
+  .arcade-code-value {
+    margin-top: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: clamp(1.25rem, 5vw, 1.75rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--c-text);
+    word-break: break-all;
+  }
+
+  /* ==========================================================================
+     刮刮乐（#/games 第二工位）
+     --------------------------------------------------------------------------
+     这一版是**照真实票面重做**的，两条硬约束：
+     1. **票面结构照真票**：抬头（品牌 / 系列 / 面额角标）→ 票名 + 玩法 →
+        中奖号码 → 可刮区（覆盖膜）→ 底栏（保安区 / 票号 / 中奖率 / 说明）。
+        每款还有自己的印刷纹样（`--motif`），不是"换个颜色就一款"。
+     2. **可刮区面积照 20~50 元大票**：票面 5:3，覆盖膜 96% 宽 × 38/60 高
+        = **60.8% 面积**（小票那种九宫格只有一半，太像玩具）。
+        改比例就改 `.ticket { grid-template-rows }` 里 38cqw 那一行，
+        改完跑一遍验收里的「可刮区占比」断言。
+     票面内部尺寸一律走 cqw（容器查询单位），整张票等比缩放 ——
+     所以架子上 215px 的缩略票和台面上 640px 的大票是**同一套 DOM**，
+     抽卡时才接得上（缩略票放大就是大票）。
+     ⚠️ cqw 只给**子元素**用：容器挂在 `.ticket-frame` 上，不挂在 `.ticket` 自己。
+     ========================================================================== */
+
+  /* ---- 工位外壳 ---- */
+  .scratch-booth {
+    margin-top: 3.5rem;
+    padding-top: 2.75rem;
+    border-top: 1px solid var(--c-hairline);
+    /* 兜底款色：万一某个子元素没落在 `[data-face]` 里，
+       `rgb(var(--scratch-hue) / a)` 也不会变成非法值被整条丢掉。 */
+    --scratch-hue: var(--c-accent-rgb);
+    --scratch-hue-ink: var(--c-accent-text-rgb);
+  }
+
+  .scratch-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .scratch-title {
+    font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--c-text);
+  }
+
+  .scratch-sub {
+    margin-top: 0.45rem;
+    max-width: 34rem;
+    font-size: 0.75rem;
+    line-height: 1.7;
+    color: var(--c-muted);
+  }
+
+  .scratch-sound {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-pill);
+    font-size: 0.75rem;
+    color: var(--c-muted);
+    background: none;
+    cursor: pointer;
+    transition: color var(--dur-base) var(--ease-out),
+      border-color var(--dur-base) var(--ease-out);
+  }
+
+  .scratch-sound:hover,
+  .scratch-sound[data-on="true"] {
+    color: var(--c-text);
+    border-color: rgb(var(--c-accent-rgb) / 0.45);
+  }
+
+  .scratch-sound:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 3px;
+  }
+
+  /* ---- 票位选择：面额 + 余票 ---- */
+  .scratch-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.25rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .scratch-bar-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.75rem;
+    color: var(--c-muted);
+  }
+
+  .scratch-denoms {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-pill);
+  }
+
+  .scratch-denom {
+    min-width: 3.2rem;
+    padding: 0.3rem 0.7rem;
+    border: 0;
+    border-radius: var(--r-pill);
+    font: inherit;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--c-muted);
+    background: none;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .scratch-denom:hover {
+    color: var(--c-text);
+  }
+
+  .scratch-denom[aria-pressed="true"] {
+    color: rgb(var(--c-brand-ink-rgb));
+    background-color: rgb(var(--c-accent-rgb) / 0.9);
+  }
+
+  .scratch-denom:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 2px;
+  }
+
+  /* ---- 舞台：货架与台面叠在同一格里 ---- */
+  .scratch-stage {
+    display: grid;
+    perspective: 1800px;
+    perspective-origin: 50% 36%;
+    /* 两个子元素占同一格：切视图时页面高度不跳 */
+    grid-template-areas: "layer";
+  }
+
+  .scratch-stage > * {
+    grid-area: layer;
+    min-width: 0;
+  }
+
+  /* ===== 展示架：木托 + 钢丝夹 =====
+     照 Cyrus 给的那张实拍做的：**一块木托**，票用**钢丝夹**夹在上面，
+     票是立着的（往后靠 8°），所以每张都看得清正面 —— 而不是摊在桌上的一排纸片。
+     三条 3D 硬约束（本项目反复踩过，写在 details-verify.md 里）：
+     ① preserve-3d 的祖先不能有 filter / 子树 opacity<1 / overflow / mask / clip-path；
+     ② translateZ 不吃百分比 → 进深一律用 px / rem；
+     ③ 让票「立起来」用 rotateX + `transform-origin: 50% 100%`（底边钉住），
+        **不要**用 scaleY 压扁：压扁是纸片，立起来才是纸板。
+     木纹、钢丝、卡纸侧边全部走令牌 —— 浅色主题里「暖木」和「不锈钢」都要另配一组值，
+     只调 alpha 是救不回来的（白木头在白底上隐形）。 */
+  .rack-stage {
+    align-self: start;
+    /* 上边要留够三层台阶的高度：后排票是"叠"上来的，不是缩小的，
+       顶部不留白就会压到工位说明上。 */
+    padding: 4.4rem 0 1.8rem;
+    transform-style: preserve-3d;
+    transition: opacity 380ms var(--ease-out), transform 380ms var(--ease-out);
+  }
+
+  .rack-stage[data-shown="false"] {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.97);
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 380ms var(--ease-out), transform 380ms var(--ease-out),
+      visibility 0s linear 380ms;
+  }
+
+  /* 架子的地基：不是一块平板，是「木托 + 台面」两片平面。
+     `.stand` 本身不旋转（旋转会让钢丝夹跟着歪），只把台面那一片转平。 */
+  .stand {
+    position: relative;
+    transform-style: preserve-3d;
+    /* 架子的三个几何量：底座厚度 / 台阶高差 / 台阶退深。
+       所有规则都从这三个值算 —— 改一个数，横杆、立柱、斜撑、票位会一起跟上，
+       不然就会出现"改完台面，横杆还悬在半空"这种错位。
+       台阶高差 2.6rem（≈42px）是有讲究的：票高约 117px，
+       高差给小了，后一排几乎整张露出来（15 张灰膜糊成一片）；
+       给大了，后排只剩一条边，看着不像"压着三张"。 */
+    --stand-base: 2.6rem;
+    --stand-step: 2.6rem;
+    --stand-depth: 3.2rem;
+    --stand-rise: 12.8rem;
+  }
+
+  /* 木托台面：绕**前沿**转 72°，于是它向后缩进 —— 眼睛读到的是"一块有厚度的板"。
+     进深是 15rem × cos72° ≈ 4.6rem：再浅就退回"一条木纹贴纸"，
+     卡片之间的缝里必须看得见木头，这块托子才立得住。
+     ⚠️ 半径/进深全是 px 基准（rotateX 不吃百分比）；改角度会连带改投影高度。 */
+  .stand-deck {
+    position: absolute;
+    left: -1.6%;
+    right: -1.6%;
+    bottom: var(--stand-base);
+    height: 15rem;
+    transform: rotateX(72deg);
+    transform-origin: 50% 100%;
+    border-radius: 0.5rem;
+    background-color: rgb(var(--c-scratch-wood-rgb));
+    background-image: linear-gradient(
+        180deg,
+        rgb(var(--c-scratch-wood-2-rgb)),
+        rgb(var(--c-scratch-wood-rgb)) 32%
+      ),
+      repeating-linear-gradient(
+        88deg,
+        rgb(var(--c-scratch-wood-ink-rgb) / 0.1) 0 1px,
+        transparent 1px 13px
+      ),
+      repeating-linear-gradient(
+        92deg,
+        rgb(var(--c-scratch-wood-2-rgb) / 0.5) 0 2px,
+        transparent 2px 31px
+      );
+    box-shadow: 0 22px 40px -26px rgb(0 0 0 / 0.85);
+  }
+
+  /* 木托前立面：一条有高光的木边，票就"插"在它后面 */  .stand-lip {
+    position: absolute;
+    left: -1.6%;
+    right: -1.6%;
+    bottom: 0;
+    height: var(--stand-base);
+    border-radius: 0.5rem;
+    background-color: rgb(var(--c-scratch-wood-rgb));
+    background-image: linear-gradient(
+        180deg,
+        rgb(var(--c-scratch-wood-ink-rgb) / 0.2),
+        transparent 36%
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgb(var(--c-scratch-wood-ink-rgb) / 0.09) 0 1px,
+        transparent 1px 17px
+      ),
+      linear-gradient(
+        180deg,
+        rgb(var(--c-scratch-wood-rgb)),
+        rgb(var(--c-scratch-wood-2-rgb))
+      );
+    box-shadow: inset 0 2px 0 rgb(var(--c-scratch-wood-ink-rgb) / 0.42),
+      inset 0 -6px 10px -6px rgb(0 0 0 / 0.45),
+      0 14px 26px -18px rgb(0 0 0 / 0.8);
+  }
+
+  .stand-slots {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* max-content + start：行高由票本身决定，别让 stretch 把矮票拉成整行高。
+       ⚠️ 行间距**不许用百分比**（见下面窄屏那条注释）：390px 实测，
+       百分比 row-gap 会让末行整排越界，压到下面的说明文字上。 */
+    grid-auto-rows: max-content;
+    align-items: start;
+    gap: 2.4%;
+    margin: 0;
+    /* 两侧留出边框的位置：实拍里票是"装"在框里的，
+       票吃满整宽时立柱和横杆就只剩一条发丝，架子等于没画。 */
+    padding: 0 2.4rem;
+    list-style: none;
+    transform-style: preserve-3d;
+  }
+
+  .stand-slot {
+    position: relative;
+    /* 卡片底边往下这一段 = 木托前立面，价签就贴在上面。
+       不加这条，价签会压在票面上（第一版就是这么丑的）。
+       ⚠️ 必须与 `--stand-base` 相等，验收里有一条断言卡这个。 */
+    padding-bottom: var(--stand-base);
+    transform-style: preserve-3d;
+    /* fan：左往右转、右往左转，像插在架子上朝中间收 */
+    --fan: 0deg;
+  }
+
+  .stand-slot:nth-child(1) { --fan: 5deg; }
+  .stand-slot:nth-child(2) { --fan: 2.5deg; }
+  .stand-slot:nth-child(3) { --fan: 0deg; }
+  .stand-slot:nth-child(4) { --fan: -2.5deg; }
+  .stand-slot:nth-child(5) { --fan: -5deg; }
+
+  /* 窄屏：一排五张会缩成邮票，必须减列。
+     一列以上时扇形就散了，全部转正（`:nth-child(n)` 与上面同权重，靠顺序覆盖）。
+     ⚠️ row-gap 绝不许给百分比：块尺寸未定时 Chrome 把它算成 0，
+     结果行间距没了、末行整排越界 —— 390px 上实测把「本次会读每款 3 张」
+     压掉半行（+27px）。列间距用 %，行间距用 rem。 */
+  @media (max-width: 1023px) {
+    .stand-slots {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.6rem 4%;
+      padding-inline: 0.9rem;
+    }
+
+    .stand-slot:nth-child(n) {
+      --fan: 0deg;
+    }
+
+    /* 一块木托只能托住**一排**。折成两排以后，上面那排票是悬空的，
+       木托也就成了"贴在下半页的一块木头"——宁可不摆，让票自己站着。
+       三层台阶和镀铬边框同理：没有一排的宽度，架子只会挤成一团。 */
+    .stand-deck,
+    .stand-lip,
+    .stand-frame,
+    .stand-copy {
+      display: none;
+    }
+
+    /* 立牌已经回到文档流（票下面一行），木托那段 2.6rem 的立面高度不必再留 */
+    .stand-slot {
+      padding-bottom: 0.6rem;
+    }
+
+    /* 没有三层台阶就不必留那 6.2rem：留了就是一段空白 */
+    .rack-stage {
+      padding-top: 0.6rem;
+    }
+  }
+
+  @media (max-width: 559px) {
+    .stand-slots {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.6rem 6%;
+      padding-inline: 0.5rem;
+    }
+
+    /* 五款排两列会剩一个孤零零的：让它居中，别吊在左边 */
+    .stand-slot:last-child {
+      grid-column: 1 / -1;
+      justify-self: center;
+      width: 46%;
+    }
+
+    .stand-deck,
+    .stand-lip {
+      left: -2.6%;
+      right: -2.6%;
+    }
+  }
+
+  /* 票票本身：立在木托前沿上，往后靠 15°（实拍里票是靠着的，不是直立的）。
+     `transform-origin: 50% 100%` 把底边钉死 —— 不然 rotation 会让票"离地"。 */
+  .stand-card {
+    position: relative;
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transform: rotateY(var(--fan)) rotateX(15deg);
+    transform-origin: 50% 100%;
+    transition: transform 380ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 卡片落在木托上的影子：没有它，票是"浮"在木头上的 */
+  .stand-card::after {
+    content: "";
+    position: absolute;
+    inset: auto 4% -0.5rem 4%;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      rgb(0 0 0 / 0.55),
+      transparent 100%
+    );
+    transform: translateZ(-2px);
+    pointer-events: none;
+  }
+
+  /* hover 只画一圈描边，**不位移**。
+     试过「hover 时把票往外抽一点」，结果在 preserve-3d + perspective 里
+     鼠标按下 / 抬起之间票面在动，浏览器把 click 派发到了共同祖先（li）上 ——
+     真人慢慢移过去没事，但这是典型的「看起来能点、其实点不中」。
+     票要拔出来，是**点下去**那一下的事（见 [data-pulled]），不是悬停的事。 */
+  .stand-slot:hover .stand-card {
+    outline: 1.5px solid rgb(var(--scratch-hue) / 0.55);
+    outline-offset: 4px;
+    border-radius: 0.45rem;
+  }
+
+  .stand-slot:focus-within .stand-card {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 6px;
+    border-radius: 0.4rem;
+  }
+
+  /* 抽卡：往外抽 + 转正 + 立直，走完 460ms 才切到台面 */
+  .stand-slot[data-pulled="true"] .stand-card {
+    transform: rotateY(0deg) rotateX(0deg) translateZ(200px) translateY(-30px)
+      scale(1.06);
+    transition: transform 440ms var(--ease-out);
+  }
+
+  .stand-slot[data-pulled="true"] .stand-plate,
+  .stand-slot[data-pulled="true"] .stand-copy {
+    opacity: 0;
+    transition: opacity 180ms linear;
+  }
+
+  .stand-slot[data-sold="true"] .stand-card {
+    cursor: not-allowed;
+    transform: rotateY(var(--fan)) rotateX(15deg) translateZ(-10px);
+  }
+
+  /* 售罄 = 架子空了：后排的库存先撤掉，只留一张灰掉的样票说明"这款没了" */
+  .stand-slot[data-sold="true"] .stand-copy {
+    opacity: 0;
+  }
+
+  .stand-slot[data-sold="true"] .stand-card::after {
+    opacity: 1;
+  }
+
+  /* 售罄：盖一层灰，票面仍然看得见（真店里就是把牌子翻过来） */
+  .stand-shade {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 0.42rem;
+    background-color: rgb(var(--c-scratch-rack-rgb) / 0.74);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  .stand-slot[data-sold="true"] .stand-shade {
+    opacity: 1;
+  }
+
+  /* ---- 三层台阶：柜台里每款压着 3 张（= PER_FACE） ----
+     前排那张是真按钮（.stand-card，走文档流，决定格位高度），
+     后两张是"库存"（.stand-copy，绝对定位、pointer-events:none）：
+     按下去抓的永远是前排那张，后排只负责让架子看起来是满的。
+
+     抬高用 `bottom`、后退用 `translateZ` —— 退深交给 `.scratch-stage` 那把
+     共享透视（1800px）去缩小，比按档位硬写 scale 更接近真架子。 */
+  .stand-copy {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: var(--stand-base);
+    transform-origin: 50% 100%;
+    pointer-events: none;
+  }
+
+  .stand-copy[data-tier="1"] {
+    bottom: calc(var(--stand-base) + var(--stand-step));
+    transform: rotateY(var(--fan)) translateZ(calc(-1 * var(--stand-depth)))
+      rotateX(15deg) rotateZ(0.7deg);
+  }
+
+  .stand-copy[data-tier="2"] {
+    bottom: calc(var(--stand-base) + var(--stand-step) * 2);
+    transform: rotateY(var(--fan)) translateZ(calc(-2 * var(--stand-depth)))
+      rotateX(15deg) rotateZ(-0.5deg);
+  }
+
+  /* ---- 镀铬边框：两根立柱 + 三道横杆 + 两根斜撑 ----
+     Cyrus 那张实拍里，架子本身就是个钢丝结构，不是"每张票一个夹子"。
+     管子靠一层"上亮下暗"的渐变做圆柱感（竖杆换 90deg）；横杆要有阴影，
+     不然在深色底上就是几条飘着的白线。
+     ⚠️ `.stand-frame` 必须 preserve-3d 且 **不带 filter**，
+     否则三维排序断了，横杆会被整块压到票后面去。 */
+  .stand-frame {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    pointer-events: none;
+  }
+
+  .stand-rail,
+  .stand-post,
+  .stand-ramp {
+    position: absolute;
+    border-radius: 999px;
+    background-color: rgb(var(--c-scratch-wire-rgb));
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.42);
+  }
+
+  /* 横杆：横向的管子，高光在上一半 */
+  .stand-rail {
+    left: -1.4%;
+    right: -1.4%;
+    height: 0.28rem;
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.62),
+      rgb(255 255 255 / 0.06) 46%,
+      rgb(0 0 0 / 0.3)
+    );
+  }
+
+  .stand-rail[data-tier="0"] {
+    bottom: var(--stand-base);
+    transform: translateZ(0.15rem);
+  }
+
+  .stand-rail[data-tier="1"] {
+    bottom: calc(var(--stand-base) + var(--stand-step));
+    transform: translateZ(calc(-1 * var(--stand-depth) + 0.15rem));
+  }
+
+  .stand-rail[data-tier="2"] {
+    bottom: calc(var(--stand-base) + var(--stand-step) * 2);
+    transform: translateZ(calc(-2 * var(--stand-depth) + 0.15rem));
+  }
+
+  /* 立柱：竖着的管子，高光在左半 */
+  .stand-post {
+    bottom: var(--stand-base);
+    width: 0.42rem;
+    height: var(--stand-rise);
+    background-image: linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.6),
+      rgb(255 255 255 / 0.04) 44%,
+      rgb(0 0 0 / 0.32)
+    );
+    transform: translateZ(calc(-2 * var(--stand-depth) - 1rem));
+  }
+
+  .stand-post-l {
+    left: 0.5%;
+  }
+
+  .stand-post-r {
+    right: 0.5%;
+  }
+
+  /* 斜撑：从前沿斜向上，和立柱在顶端收口 —— 实拍里侧面就是个三角形。
+     纯 2D 的倾斜：镜头基本正面，斜撑在投影里本来就只是"一条斜线"。 */
+  .stand-ramp {
+    bottom: var(--stand-base);
+    width: 0.34rem;
+    height: var(--stand-rise);
+    transform-origin: 50% 100%;
+    background-image: linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0.5),
+      rgb(255 255 255 / 0.04) 44%,
+      rgb(0 0 0 / 0.28)
+    );
+  }
+
+  .stand-ramp-l {
+    left: -1.1%;
+    transform: translateZ(calc(-1 * var(--stand-depth))) rotate(6deg);
+  }
+
+  .stand-ramp-r {
+    right: -1.1%;
+    transform: translateZ(calc(-1 * var(--stand-depth))) rotate(-6deg);
+  }
+
+  /* 名牌立牌：**一组票前面单独摆一块**，票名只印在这里。
+     Cyrus 2026-10-20：「缩略图就不显示彩票名称了，在一组彩票前面单独摆一个
+     架子来显示，要不然太拥挤了」。同一款压三张，票名印在票上就重复三遍，
+     200px 宽里成了三道横杠 —— 现在一道也没有，只有这一块立牌。
+
+     物理上它是一张立在木托立面、往后仰 10° 的纸卡（和票一样用 rotateX，
+     `transform-origin: 50% 100%` 把底边钉在木头上），顶端压一条票色印刷边
+     —— 五款并排时，"哪块牌子对哪摞票"靠这条颜色，不靠字号。
+     宽度只给 76%：比票窄一圈才读得出是"另一件东西"，
+     吃满整宽就又变回"第四条横杠"。 */
+  .stand-plate {
+    position: absolute;
+    left: 50%;
+    bottom: 0.14rem;
+    z-index: 2;
+    display: grid;
+    justify-items: center;
+    gap: 0.02rem;
+    width: 76%;
+    padding: 0.2rem 0.28rem 0.24rem;
+    border-radius: 0.18rem;
+    border-top: 0.12rem solid rgb(var(--scratch-hue) / 0.92);
+    background-color: rgb(var(--c-scratch-plate-2-rgb) / 0.96);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.07),
+      0 4px 9px -6px rgb(0 0 0 / 0.75);
+    text-align: center;
+    white-space: nowrap;
+    transform: translateX(-50%) translateZ(16px) rotateX(10deg);
+    transform-origin: 50% 100%;
+    transition: opacity 220ms var(--ease-out);
+  }
+
+  .stand-plate-name {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.06em;
+    text-overflow: ellipsis;
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  .stand-plate-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.32rem;
+    max-width: 100%;
+    line-height: 1.4;
+  }
+
+  .stand-plate-meta b {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  .stand-plate-meta i {
+    font-style: normal;
+    font-size: 0.53rem;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  /* 窄屏：木托撤了，立牌就没有"立"的地方 —— 退回成票下面的一行标签。
+     此时一块牌子就是一整张卡的说明，宽度给满反而更整齐。 */
+  @media (max-width: 1023px) {
+    .stand-plate {
+      position: static;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.36rem;
+      width: 100%;
+      margin-top: 0.34rem;
+      transform: none;
+    }
+
+    .stand-plate-name {
+      font-size: 0.76rem;
+    }
+  }
+
+  @media (max-width: 559px) {
+    .stand-plate-meta i {
+      display: none;
+    }
+  }
+
+  /* ---- 架上的票：只印卡面，不印票名 ----
+     Cyrus 2026-10-20：「缩略图就不显示彩票名称了，在一组彩票前面单独摆一个
+     架子来显示，要不然太拥挤了」。同一款压三张，票名印在票上就是三遍，
+     在 200px 宽的格位里那是三道横杠 —— 票名统一交给 `.stand-plate`。
+
+     ⚠️ 只写 `display:none` 会把 `.ticket-foil` 顶到第 2 行（4.6cqw）去：
+     grid 是按文档顺序自动排的，少一件物品，后面全部上移一格。
+     所以行模板必须一起改成三行（4.6 + 50 + 5.4 = 60cqw，5:3 不变）。 */
+  .ticket-frame[data-variant="rack"] .ticket {
+    grid-template-rows: 4.6cqw 50cqw 5.4cqw;
+  }
+
+  /* 缩略票上不摆小字：4px 的字只会糊成噪点。留品牌 + 面额 + 票号 + 条码就够读了。
+     ⚠️ 选择器用 `[data-variant="rack"]`，**不能用 `.stand-card`** ——
+     后排两张库存票不在 `.stand-card` 里面，用后者会出现"前排小字、后排大字"。
+     ⚠️ 字号一律不吃 px 下限：下限是为大票保可读性设的，
+     在 200px 的缩略票上会把字撑破它那行。 */
+  .ticket-frame[data-variant="rack"] .ticket-title,
+  .ticket-frame[data-variant="rack"] .ticket-series,
+  .ticket-frame[data-variant="rack"] .ticket-serial-label,
+  .ticket-frame[data-variant="rack"] .ticket-jackpot,
+  .ticket-frame[data-variant="rack"] .ticket-guard,
+  .ticket-frame[data-variant="rack"] .ticket-barcode,
+  .ticket-frame[data-variant="rack"] .ticket-print {
+    display: none;
+  }
+
+  .ticket-frame[data-variant="rack"] .ticket-brand {
+    font-size: 2.6cqw;
+    letter-spacing: 0.16em;
+  }
+
+  .ticket-frame[data-variant="rack"] .ticket-serial-value {
+    font-size: 2.4cqw;
+  }
+
+  .ticket-frame[data-variant="rack"] .ticket-denom {
+    font-size: 4cqw;
+    padding: 0.8cqw 1.2cqw;
+  }
+
+  .rack-restock {
+    margin-top: 1rem;
+    font-size: 0.68rem;
+    color: var(--c-muted);
+  }
+
+  /* ===== 台面（拿在手上） ===== */
+  .scratch-view {
+    position: relative;
+    width: 100%;
+    justify-self: center;
+    padding-top: 0.4rem;
+    animation: scratch-view-in 460ms var(--ease-out) both;
+  }
+
+  @keyframes scratch-view-in {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .scratch-desk {
+    width: 100%;
+    /* 40rem 在 1440 的台面上太"远"了 —— 这一步是"凑近看"，
+       票要占到台面宽度的大半，可刮区才够手底下使。
+       宽屏放到 46rem（736px），窄屏维持 40rem 免得挤压。 */
+    max-width: 46rem;
+    margin-inline: auto;
+  }
+
+  @media (max-width: 1023px) {
+    .scratch-desk {
+      max-width: 40rem;
+    }
+  }
+
+  .scratch-desk-main {
+    min-width: 0;
+  }
+
+  /* 台面抬头：手上是哪张票 + 翻面 + 放回架子 */
+  .scratch-desk-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .scratch-desk-name {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    min-width: 0;
+    font-size: 0.75rem;
+    color: var(--c-muted);
+  }
+
+  .scratch-desk-series {
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+  }
+
+  .scratch-desk-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--c-text);
+    white-space: nowrap;
+  }
+
+  .scratch-desk-price {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  .scratch-desk-tools {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .scratch-back,
+  .scratch-flip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-pill);
+    font-size: 0.7rem;
+    color: var(--c-muted);
+    background: none;
+    cursor: pointer;
+    transition: color var(--dur-base) var(--ease-out),
+      border-color var(--dur-base) var(--ease-out);
+  }
+
+  .scratch-back:hover,
+  .scratch-flip:hover {
+    color: var(--c-text);
+    border-color: rgb(var(--c-accent-rgb) / 0.45);
+  }
+
+  .scratch-back:focus-visible,
+  .scratch-flip:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 3px;
+  }
+
+  .scratch-flip {
+    color: var(--c-text);
+    border-color: rgb(var(--scratch-hue) / 0.4);
+  }
+
+  /* 拿在手上时的两条出口：先看正反面，再决定刮不刮 */
+  .scratch-cues {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+
+  /* 拿着那张票：包一层，好让「点票面翻面」的透明按钮有个定位基准 */
+  .scratch-hold {
+    position: relative;
+  }
+
+  /* 还没决定刮的时候，点票面 = 翻面。
+     它是个真按钮（键盘和读屏都能用），只是画成透明的。
+     `z-index` 要压过票面：票面里有 preserve-3d 的层，顺位不可靠。 */
+  .scratch-tap {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    border: 0;
+    border-radius: 0.45rem;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .scratch-tap:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 3px;
+  }
+
+  .scratch-now {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1.05rem;
+    border: 1px solid rgb(var(--scratch-hue) / 0.55);
+    border-radius: var(--r-pill);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgb(var(--scratch-hue-ink));
+    background-image: linear-gradient(
+      140deg,
+      rgb(var(--scratch-hue) / 0.16),
+      transparent 70%
+    );
+    cursor: pointer;
+    transition: border-color var(--dur-base) var(--ease-out),
+      background-color var(--dur-base) var(--ease-out);
+  }
+
+  .scratch-now:hover {
+    border-color: rgb(var(--scratch-hue) / 0.85);
+    background-color: rgb(var(--scratch-hue) / 0.1);
+  }
+
+  .scratch-now:focus-visible {
+    outline: 2px solid var(--c-accent-bright);
+    outline-offset: 3px;
+  }
+
+  .scratch-cue-note {
+    flex: 1 1 12rem;
+    min-width: 0;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: var(--c-muted);
+  }
+
+  /* ==========================================================================
+     票面：一张**双面的实体票**
+     --------------------------------------------------------------------------
+     正面：抬头带（品牌 / 系列 / 最高奖金 / 面额角标）→ 票名 + 中奖号码 →
+           可刮区（含印刷边框）→ 底栏（保安区 / 票号 / 条码）
+     背面：奖级表 / 玩法 / 须知 / 保安区 / 票号 / 条码
+     尺寸：4.6 + 6.4 + 43.6 + 5.4 = 60cqw（票面 5:3）
+           可刮区 96% × 43.6/60 → **69.8% 面积**
+           改比例就改 `.ticket { grid-template-rows }` 的第三行，
+           改完必须重跑验收里的「可刮区占比」断言。
+     为什么敢到 69.8%：Cyrus 说「还是太窄太小」。
+     真票（体彩顶呱刮 / 福彩）的玩区就是票面主体，四周只剩一圈印刷边 ——
+     60% 那版还留着一整条中奖号码栏在膜上方，等于用横条吃掉了膜的高度。
+     这一版把中奖号码并进票名那一行，膜直接顶到票名下方。
+     ========================================================================== */
+  .ticket-frame {
+    width: 100%;
+    container-type: inline-size;
+    /* ⚠️ **透视不能挂在这一层**。
+       实测（2026-10-18）：`container-type: inline-size` + `perspective` 同时挂在
+       同一个元素上时，Chromium 的真实输入命中测试会整段跳过它的子树 ——
+       `elementsFromPoint()` 明明返回票面，`mousedown` 的 target 却是外层 `<li>`，
+       于是「点了没反应」，而且**不报错**。（`page.click` 早就因为这个踩过一次，
+       这次是真实鼠标也中招，比那次更隐蔽。）
+       所以透视改成写在 `.ticket-3d` 自己的 transform 里：`perspective()` 函数
+       同样进 3D 矩阵，翻面一样有纵深，但不会建立那个坏掉的命中上下文。 */
+  }
+
+  .ticket-3d {
+    position: relative;
+    height: 60cqw;
+    /* 卡纸厚度：0.36cqw，最小 1.4px —— 缩略票上也要有"一条边" */
+    --ticket-t: max(1.4px, 0.36cqw);
+    transform-style: preserve-3d;
+    transform: perspective(1500px) rotateY(0deg);
+    transition: transform 620ms cubic-bezier(0.3, 0.9, 0.24, 1);
+  }
+
+  .ticket-3d[data-flipped="true"] {
+    transform: perspective(1500px) rotateY(180deg);
+  }
+
+  .ticket-side {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* 正反面各往自己这边推半个纸厚 → 中间那条缝隙就是"纸的厚度" */
+  .ticket-front {
+    transform: translateZ(calc(var(--ticket-t) / 2));
+  }
+
+  .ticket-back {
+    transform: rotateY(180deg) translateZ(calc(var(--ticket-t) / 2));
+  }
+
+  /* 卡纸侧边：翻面时看得见的那两条竖边（顶/底边被视角挡住，不必画） */
+  .ticket-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--ticket-t);
+    background-color: rgb(var(--c-scratch-cardedge-rgb));
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+    pointer-events: none;
+  }
+
+  .ticket-edge-l {
+    left: 0;
+    transform-origin: 0% 50%;
+    transform: translateZ(calc(var(--ticket-t) / -2)) rotateY(-90deg);
+  }
+
+  .ticket-edge-r {
+    right: 0;
+    transform-origin: 100% 50%;
+    transform: translateZ(calc(var(--ticket-t) / -2)) rotateY(90deg);
+  }
+
+  .ticket {
+    position: relative;
+    display: grid;
+    width: 100%;
+    height: 100%;
+    grid-template-rows: 4.6cqw 6.4cqw 43.6cqw 5.4cqw;
+    overflow: hidden;
+    border-radius: 0.42rem;
+    /* 刮 = 按住拖。不关掉选中，鼠标一拖就把票面上的字刷成蓝色选区 */
+    user-select: none;
+    -webkit-user-select: none;
+    color: rgb(var(--c-scratch-ink-rgb));
+    background-color: rgb(var(--c-scratch-stock-rgb));
+    background-image: linear-gradient(
+      158deg,
+      rgb(var(--c-scratch-stock-2-rgb)),
+      rgb(var(--c-scratch-stock-rgb)) 58%
+    );
+    box-shadow: var(--scratch-paper-shadow);
+  }
+
+  /* 款式的印刷纹样：一层很淡的几何图案，不同款长得不一样 */
+  .ticket-motif {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--motif-alpha, 0.5);
+  }
+
+  /* ---- 抬头带 ---- */
+  .ticket-head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 1.4cqw;
+    padding: 0 1.4cqw 0 2.4cqw;
+    border-top: 0.5cqw solid rgb(var(--scratch-hue) / 0.85);
+    background-image: linear-gradient(
+        90deg,
+        rgb(var(--scratch-hue) / 0.2),
+        rgb(var(--scratch-hue) / 0.04) 62%
+      ),
+      repeating-linear-gradient(
+        -54deg,
+        rgb(var(--scratch-hue) / 0.12) 0 0.4cqw,
+        transparent 0.4cqw 2cqw
+      );
+  }
+
+  .ticket-brand {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: max(6px, 1.9cqw);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: rgb(var(--c-scratch-ink-rgb));
+  }
+
+  .ticket-series {
+    flex: 1;
+    min-width: 0;
+    font-size: max(6px, 1.8cqw);
+    letter-spacing: 0.16em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ticket-jackpot {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6cqw;
+    white-space: nowrap;
+  }
+
+  .ticket-jackpot i {
+    font-style: normal;
+    font-size: max(5px, 1.4cqw);
+    letter-spacing: 0.1em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .ticket-jackpot b {
+    font-family: var(--font-mono);
+    font-size: max(7px, 2.3cqw);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  /* 面额角标：真票右上角那个 ¥20 的方框 */
+  .ticket-denom {
+    flex: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2cqw;
+    align-self: stretch;
+    margin-block: -0.5cqw 0;
+    padding: 0.4cqw 1.2cqw;
+    border-radius: 0 0 0.3cqw 0.3cqw;
+    background-color: rgb(var(--scratch-hue));
+    color: rgb(var(--c-scratch-on-hue-rgb));
+    font-family: var(--font-mono);
+    font-size: max(9px, 3.1cqw);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .ticket-denom i {
+    font-style: normal;
+    font-size: 0.62em;
+    font-weight: 600;
+    opacity: 0.85;
+  }
+
+  /* ---- 票名 + 中奖号码 ---- */
+  .ticket-title {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 1.8cqw;
+    padding: 0 2.4cqw;
+    /* 抬头带 + 票名行读作**一整块彩色版面**（真票最上面那 18% 就是一块印刷版），
+       否则票名孤零零印在纸上，架子上一排看过去五张票长得一模一样。 */
+    background-image: linear-gradient(
+      92deg,
+      rgb(var(--scratch-hue) / 0.17),
+      rgb(var(--scratch-hue) / 0.03) 74%
+    );
+    border-bottom: 0.14cqw solid rgb(var(--scratch-hue) / 0.34);
+  }
+
+  .ticket-name {
+    flex: none;
+    font-size: max(13px, 5.2cqw);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  .ticket-rule {
+    flex: 1;
+    min-width: 0;
+    font-size: max(6px, 1.66cqw);
+    line-height: 1.45;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .ticket-match {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.9cqw;
+  }
+
+  .ticket-match-label {
+    font-size: max(5px, 1.6cqw);
+    letter-spacing: 0.1em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+    white-space: nowrap;
+  }
+
+  .ticket-match-glyphs {
+    display: flex;
+    align-items: center;
+    gap: 0.8cqw;
+  }
+
+  .ticket-match-glyph {
+    display: grid;
+    place-items: center;
+    width: 3.9cqw;
+    height: 3.9cqw;
+    min-width: 12px;
+    min-height: 12px;
+    border-radius: 0.28cqw;
+    border: 0.26cqw solid rgb(var(--scratch-hue) / 0.75);
+    background-color: rgb(var(--scratch-hue) / 0.1);
+    font-size: max(8px, 2.7cqw);
+    line-height: 1;
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  /* ---- 可刮区 ---- */
+  .ticket-foil {
+    position: relative;
+    z-index: 1;
+    width: 96%;
+    justify-self: center;
+    align-self: stretch;
+    border-radius: 0.4rem;
+    overflow: hidden;
+    background-color: rgb(var(--c-scratch-stock-2-rgb));
+    box-shadow: inset 0 0 0 1px rgb(var(--c-scratch-rule-rgb) / 0.06);
+  }
+
+  .ticket-cells {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 0.8cqw;
+    height: 100%;
+    margin: 0;
+    padding: 1cqw;
+    list-style: none;
+  }
+
+  .ticket-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    border: 1px solid rgb(var(--c-scratch-rule-rgb) / var(--c-scratch-rule-alpha));
+    border-radius: 0.3cqw;
+    background-color: rgb(var(--c-scratch-rule-rgb) / 0.02);
+  }
+
+  /* 格子里**只有符号**：票面不出现金额（Cyrus 2026-10-21），
+     所以字号吃到 6.2cqw —— 原来符号和金额挤在一格里，符号只能给 4cqw。 */
+  .ticket-cell-symbol {
+    font-size: max(13px, 6.2cqw);
+    line-height: 1;
+    color: rgb(var(--c-scratch-ink-rgb));
+  }
+
+  /* 中奖格只在**揭开之后**才亮 —— 提前亮等于把答案漏在覆盖膜下面 */
+  .ticket[data-revealed="true"] .ticket-cell[data-hit="true"] {
+    border-color: rgb(var(--scratch-hue) / 0.7);
+    background-color: rgb(var(--scratch-hue) / 0.14);
+  }
+
+  .ticket[data-revealed="true"] .ticket-cell[data-hit="true"] .ticket-cell-symbol {
+    color: rgb(var(--scratch-hue-ink));
+    font-weight: 700;
+  }
+
+  /* ---- 架上那张：只印卡面，不摆膜 ----
+     Cyrus 2026-10-20：「未点开的时候只显示卡面设计与图案，
+     点击彩票之后，视角拉近才显示可刮区域」。
+     所以缩略票上根本没有膜：可刮区那一格画的是**款式的印刷面**
+     （票色底 + 款式纹样 + 放大的款标），五款并排一眼分得清。
+
+     这也是"五块灰板"的根治：之前无论怎么调膜的纹理，
+     15 张 200px 的银灰面板并排，读起来就是一堵墙。
+     连续性靠的是"换的只是凑近才看得见的那一层" ——
+     票名 / 面额 / 票号 / 中奖号码全都没变。 */
+  .ticket-art {
+    /* 深浅两套墨：深色主题用鲜艳票色（在黑底上才够亮），
+       浅色主题换同色系的深墨 —— 白纸上的"印刷"是墨，把亮色画上去只会糊成粉彩。 */
+    --art-ink: var(--scratch-hue);
+    --art-wash: 0.36;
+    --art-glyph-a: 0.55;
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background-color: rgb(var(--c-scratch-stock-2-rgb));
+    background-image: linear-gradient(
+      158deg,
+      rgb(var(--art-ink) / var(--art-wash)),
+      rgb(var(--art-ink) / 0.05) 74%
+    );
+  }
+
+  [data-theme="light"] .ticket-art {
+    --art-ink: var(--scratch-hue-ink);
+    /* 浅底上"印刷"的浓度要更高：白纸吸墨，同样 alpha 看起来会比深底弱一档。
+       0.2 试过，整排卡像抽掉了颜色的复印件；0.32 才有卡纸的实体感。 */
+    --art-wash: 0.32;
+    --art-glyph-a: 0.72;
+  }
+
+  /* 款标：放大的票色符号。缩略尺寸上，"这是哪一款"全靠它 */
+  .ticket-art-glyph {
+    position: relative;
+    z-index: 1;
+    font-size: 26cqw;
+    line-height: 1;
+    color: rgb(var(--art-ink) / var(--art-glyph-a));
+  }
+
+  /* 款式纹样：和卡面上的 `.ticket-motif` 同一套语言，但**浓得多** ——
+     缩到 200px 还要认得出，淡的在缩略尺寸上等于没有。 */
+  .ticket-art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* 星芒：从底部中点散开的放射扇 */
+  [data-face="star"] .ticket-art::after {
+    background-image: repeating-conic-gradient(
+      from 0deg at 50% 116%,
+      rgb(var(--art-ink) / 0.5) 0 0.9deg,
+      transparent 0.9deg 9deg
+    );
+  }
+
+  /* 波纹：两个方向交织的斜网 */
+  [data-face="weave"] .ticket-art::after {
+    background-image: repeating-linear-gradient(
+        56deg,
+        rgb(var(--art-ink) / 0.34) 0 1.2%,
+        transparent 1.2% 5%
+      ),
+      repeating-linear-gradient(
+        -56deg,
+        rgb(var(--art-ink) / 0.26) 0 1.2%,
+        transparent 1.2% 5%
+      );
+  }
+
+  /* 矩阵：方格网点 */
+  [data-face="matrix"] .ticket-art::after {
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgb(var(--art-ink) / 0.3) 0 1px,
+        transparent 1px 4.2%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgb(var(--art-ink) / 0.3) 0 1px,
+        transparent 1px 8.4%
+      );
+  }
+
+  /* 信号：粗细相间的竖条 */
+  [data-face="signal"] .ticket-art::after {
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgb(var(--art-ink) / 0.42) 0 1.6%,
+      transparent 1.6% 6%,
+      rgb(var(--art-ink) / 0.18) 6% 7.2%,
+      transparent 7.2% 11%
+    );
+  }
+
+  /* 棱镜：斜切的三角面 */
+  [data-face="prism"] .ticket-art::after {
+    background-image: repeating-linear-gradient(
+        118deg,
+        rgb(var(--art-ink) / 0.4) 0 2.4%,
+        transparent 2.4% 9%
+      ),
+      repeating-linear-gradient(
+        62deg,
+        rgb(var(--art-ink) / 0.22) 0 1.6%,
+        transparent 1.6% 12%
+      );
+  }
+
+  .ticket-foil-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+    touch-action: none; /* 手指刮的时候别把页面一起滚了 */
+    transition: opacity 460ms var(--ease-out);
+  }
+
+  .ticket-foil-canvas[data-revealed="true"] {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 还没决定刮不刮的时候：膜是"盖着但不能动"的，指针事件一律透给票面 */
+  .ticket-foil-canvas[data-live="false"] {
+    pointer-events: none;
+    cursor: default;
+  }
+
+  /* 印刷边框 + 四角花：压在膜**上面**（印刷盖在膜上，不是膜盖在印刷上）。
+     pointer-events: none 是硬要求 —— 它一旦接事件，中间那一大块就刮不动。 */
+  .ticket-print {
+    position: absolute;
+    inset: 1.1cqw;
+    border: 0.16cqw solid rgb(var(--scratch-hue) / 0.42);
+    border-radius: 0.28cqw;
+    pointer-events: none;
+  }
+
+  .ticket-print i {
+    position: absolute;
+    width: 2.6cqw;
+    height: 2.6cqw;
+    border: 0 solid rgb(var(--scratch-hue) / 0.7);
+  }
+
+  .ticket-print i:nth-child(1) {
+    top: -0.16cqw;
+    left: -0.16cqw;
+    border-top-width: 0.3cqw;
+    border-left-width: 0.3cqw;
+    border-top-left-radius: 0.3cqw;
+  }
+
+  .ticket-print i:nth-child(2) {
+    top: -0.16cqw;
+    right: -0.16cqw;
+    border-top-width: 0.3cqw;
+    border-right-width: 0.3cqw;
+    border-top-right-radius: 0.3cqw;
+  }
+
+  .ticket-print i:nth-child(3) {
+    bottom: -0.16cqw;
+    left: -0.16cqw;
+    border-bottom-width: 0.3cqw;
+    border-left-width: 0.3cqw;
+    border-bottom-left-radius: 0.3cqw;
+  }
+
+  .ticket-print i:nth-child(4) {
+    bottom: -0.16cqw;
+    right: -0.16cqw;
+    border-bottom-width: 0.3cqw;
+    border-right-width: 0.3cqw;
+    border-bottom-right-radius: 0.3cqw;
+  }
+
+  .ticket-tip {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: max(9px, 2.4cqw);
+    font-weight: 600;
+    letter-spacing: 0.34em;
+    /* 提示印在**金属膜**上，不能用刮层水印那支墨（灰底上只有 1.7:1）：
+       走票面墨色，深色主题是近白 / 浅色主题是近黑，两个方向都在 5:1 以上 */
+    color: rgb(var(--c-scratch-ink-rgb));
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  .ticket[data-started="true"] .ticket-tip,
+  .ticket[data-revealed="true"] .ticket-tip {
+    opacity: 0;
+  }
+
+  /* ---- 底栏：保安区 / 票号 / 条码 ---- */
+  .ticket-foot {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 1.6cqw;
+    padding: 0 1.8cqw 0 2.4cqw;
+  }
+
+  .ticket-guard {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3cqw;
+  }
+
+  .ticket-guard-strip {
+    display: grid;
+    place-items: center;
+    width: 15cqw;
+    min-width: 48px;
+    height: 2.7cqw;
+    min-height: 9px;
+    border-radius: 0.24cqw;
+    background-image: linear-gradient(
+        100deg,
+        rgb(var(--c-scratch-foil-rgb)),
+        rgb(var(--c-scratch-foil-2-rgb)) 46%,
+        rgb(var(--c-scratch-foil-rgb))
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgb(0 0 0 / 0.12) 0 1px,
+        transparent 1px 3px
+      );
+    font-size: max(5px, 1.4cqw);
+    letter-spacing: 0.06em;
+    color: rgb(var(--c-scratch-foil-ink-rgb));
+    white-space: nowrap;
+  }
+
+  .ticket-guard-code {
+    font-family: var(--font-mono);
+    font-size: max(5px, 1.4cqw);
+    line-height: 1;
+    letter-spacing: 0.1em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .ticket-serial {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25cqw;
+  }
+
+  .ticket-serial-value {
+    font-family: var(--font-mono);
+    font-size: max(6px, 2.1cqw);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--c-scratch-ink-rgb));
+    white-space: nowrap;
+  }
+
+  .ticket-serial-label {
+    font-size: max(5px, 1.4cqw);
+    letter-spacing: 0.1em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+    white-space: nowrap;
+  }
+
+  /* 条码：两道不同间距的竖纹叠出来的"假条码"。真条码不可扫描，
+     这里也不需要可扫 —— 它只是个印刷记号，读作"这是张真票"。 */
+  .ticket-barcode,
+  .back-barcode {
+    flex: none;
+    display: block;
+    width: 10cqw;
+    height: 3.2cqw;
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgb(var(--c-scratch-ink-rgb) / 0.8) 0 0.35cqw,
+        transparent 0.35cqw 0.6cqw
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgb(var(--c-scratch-ink-rgb) / 0.5) 0 0.2cqw,
+        transparent 0.2cqw 1.4cqw
+      );
+  }
+
+  /* ==========================================================================
+     卡面光效：镭射（holographic）+ 流光（gloss sweep）
+     --------------------------------------------------------------------------
+     只在**拿在手上**那一张上挂（`variant="full"`，由 JSX 决定）。
+     架上 15 张缩略票不挂：200px 上这点彩度只会是脏点，而且它俩和覆盖膜一样，
+     属于「凑近才看得见」的东西（§12.4 同一条原则）。
+
+     为什么这层要 `isolation: isolate` 包住：
+     `mix-blend-mode` 会跟**最近的**层叠上下文混色。不隔开的话，深色主题下
+     `screen` 会把页面水印和背景也一起提亮，卡面边缘糊出一圈脏光。
+     加在 `.ticket` 上（它本来就被 `overflow:hidden` + `border-radius` 裁着），
+     混色就只发生在卡纸内部。
+
+     深浅两套（都走令牌，改配色只动 `:root`）：
+       深色  screen  · 彩虹 12%   —— 黑卡上"反光"才是亮的
+       浅色  multiply·彩虹 20%   —— 白纸吸墨，screen 上去等于没画
+     ========================================================================== */
+  .ticket {
+    isolation: isolate;
+  }
+
+  /* 镭射：112° 的彩虹条纹，`background-position` 由指尖驱动（TicketCard 写 CSS 变量）。
+     真票的镭射是烫在纸上的薄膜，所以它压在印刷面**之上**、覆盖膜**之下**的指尖以下 ——
+     `pointer-events: none`，挂着也照样能刮。 */
+  .ticket-holo {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      112deg,
+      #ff5a78 0 0.5%,
+      #ffbe3c 0.5% 1%,
+      #78eba0 1% 1.5%,
+      #50beff 1.5% 2%,
+      #9678ff 2% 2.5%,
+      transparent 2.5% 3.4%
+    );
+    /* ⚠️ `background-size` 是**放大倍数**：图 320% 宽时，1.4% 的色条在票面上
+       就是 4.5%（≈28px），五色叠起来是一整条 135px 的彩虹雾 —— 整张卡直接糊掉。
+       所以色条按 0.5% 一档给，乘 3 之后 ≈ 1.5%（9px）一条，
+       一 rainbow 周期 3.4% × 3 ≈ 10%（60px），这才是"镭射条纹"而不是"渐变滤镜"。 */
+    background-size: 300% 300%;
+    background-position: var(--sheen-x, 46%) var(--sheen-y, 38%);
+    mix-blend-mode: var(--holo-blend, screen);
+    opacity: var(--holo-a, 0.12);
+    /* 色相随指尖横移（TicketCard 写 `--holo-hue`）：
+       真镭射是"随视角变色"，不是"图案平移"。 */
+    filter: hue-rotate(var(--holo-hue, 0deg));
+    /* ⚠️ 彩虹**不许满卡均匀铺**：满铺+screen 会把整张卡提成一层紫雾，
+       标题也被洗白。真镭射是"烫"在纸上的：抬头带和底栏满强度，
+       可刮区只留 18% 的底纹（看得见"有膜"，但不跟符号抢）。
+       指尖一动 `background-position` 就滑 —— 彩虹会从抬头带里流过去。 */
+    mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 7.6%,
+      rgb(0 0 0 / 0.45) 9.4%,
+      rgb(0 0 0 / 0.45) 18%,
+      rgb(0 0 0 / 0.18) 20.5%,
+      rgb(0 0 0 / 0.18) 88%,
+      rgb(0 0 0 / 0.34) 91%,
+      rgb(0 0 0 / 0.34) 100%
+    );
+    /* 揭开之后压下去：可刮区露出的是白卡纸，彩虹压在上面会"浮"起来 */
+    transition: opacity 420ms var(--ease-out);
+  }
+
+  /* 流光：一条斜高光，8.5 秒一轮扫过票面，扫完停 6 秒再来。
+     颜色不用纯白 —— 纯白在浅色主题里等于没画；带一点票色，
+     深色下是"反光"，浅色下是"压了一层薄涂层"。 */
+  .ticket-shine {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background-image: linear-gradient(
+      112deg,
+      transparent 48.1%,
+      rgb(var(--sheen-tint, var(--scratch-hue)) / 0.07) 49.2%,
+      rgb(var(--sheen-core, 255 255 255) / 0.15) 50%,
+      rgb(var(--sheen-tint, var(--scratch-hue)) / 0.07) 50.8%,
+      transparent 51.9%
+    );
+    background-size: 240% 100%;
+    background-repeat: no-repeat;
+    background-position: 190% 0;
+    mix-blend-mode: var(--sheen-blend, screen);
+    animation: ticket-shine 8.5s cubic-bezier(0.42, 0, 0.3, 1) infinite;
+  }
+
+  @keyframes ticket-shine {
+    0% {
+      background-position: 190% 0;
+    }
+    38%,
+    100% {
+      background-position: -70% 0;
+    }
+  }
+
+  /* 不动就是不动：reduce-motion 下停在斜上方一半的位置，卡面仍然有涂层感 */
+  @media (prefers-reduced-motion: reduce) {
+    .ticket-shine {
+      animation: none;
+      background-position: 62% 0;
+    }
+  }
+
+  /* ==========================================================================
+     票背：奖级与概率 + 玩法 + 须知
+     --------------------------------------------------------------------------
+     真票背面就是这张表 —— 它同时是「先看背面再决定刮不刮」的正当理由。
+     ========================================================================== */
+  .ticket-reverse {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85cqw;
+    padding: 2.1cqw 2.4cqw 1.7cqw;
+  }
+
+  .back-head {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    gap: 1.2cqw;
+    padding-bottom: 0.7cqw;
+    border-bottom: 0.14cqw solid rgb(var(--c-scratch-rule-rgb) / 0.16);
+  }
+
+  .back-brand {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: max(6px, 1.8cqw);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .back-name {
+    flex: 1;
+    min-width: 0;
+    font-size: max(9px, 3.2cqw);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: rgb(var(--scratch-hue-ink));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .back-series {
+    margin-left: 1cqw;
+    font-style: normal;
+    font-size: 0.44em;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .back-denom {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: max(8px, 2.6cqw);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  .back-h {
+    font-size: max(6px, 1.7cqw);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .back-table {
+    width: 100%;
+    margin-top: 0.5cqw;
+    border-collapse: collapse;
+    font-size: max(6px, 1.78cqw);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .back-table th,
+  .back-table td {
+    padding: 0.24cqw 0.6cqw;
+    text-align: right;
+    font-weight: 400;
+    color: rgb(var(--c-scratch-ink-rgb));
+    border-bottom: 0.12cqw solid rgb(var(--c-scratch-rule-rgb) / 0.12);
+  }
+
+  .back-table thead th {
+    text-align: right;
+    padding-bottom: 0.3cqw;
+    font-size: max(5px, 1.5cqw);
+    letter-spacing: 0.08em;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+    border-bottom-color: rgb(var(--c-scratch-rule-rgb) / 0.24);
+  }
+
+  .back-table thead th:first-child {
+    text-align: left;
+  }
+
+  .back-table th {
+    text-align: left;
+    font-weight: 700;
+    color: rgb(var(--c-scratch-hue-ink));
+    white-space: nowrap;
+  }
+
+  .back-table tr[data-win="false"] th,
+  .back-table tr[data-win="false"] td {
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .back-copy {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .back-rule {
+    font-size: max(6px, 1.6cqw);
+    line-height: 1.55;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .back-rule b,
+  .back-notes-title {
+    display: block;
+    margin-bottom: 0.3cqw;
+    font-size: max(6px, 1.7cqw);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: rgb(var(--c-scratch-ink-rgb));
+  }
+
+  .back-notes-title {
+    margin-top: 0.9cqw;
+  }
+
+  .back-notes {
+    margin: 0.5cqw 0 0;
+    padding-left: 2.2cqw;
+    list-style: decimal;
+    font-size: max(5px, 1.5cqw);
+    line-height: 1.45;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+  }
+
+  .back-notes li::marker {
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  .back-foot {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 1.4cqw;
+    padding-top: 0.7cqw;
+    border-top: 0.14cqw solid rgb(var(--c-scratch-rule-rgb) / 0.16);
+  }
+
+  .back-guard {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.8cqw;
+  }
+
+  .back-guard-strip {
+    display: grid;
+    place-items: center;
+    padding: 0.3cqw 0.9cqw;
+    border-radius: 0.24cqw;
+    background-image: linear-gradient(
+      100deg,
+      rgb(var(--c-scratch-foil-rgb)),
+      rgb(var(--c-scratch-foil-2-rgb)) 46%,
+      rgb(var(--c-scratch-foil-rgb))
+    );
+    font-size: max(5px, 1.4cqw);
+    letter-spacing: 0.06em;
+    color: rgb(var(--c-scratch-foil-ink-rgb));
+    white-space: nowrap;
+  }
+
+  .back-guard-code {
+    font-family: var(--font-mono);
+    font-size: max(5px, 1.5cqw);
+    letter-spacing: 0.1em;
+    color: rgb(var(--c-scratch-ink-rgb));
+  }
+
+  .back-serial {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: max(5px, 1.6cqw);
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--c-scratch-ink-2-rgb));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .back-barcode {
+    width: 8cqw;
+    height: 2.8cqw;
+  }
+
+  .back-disclaimer {
+    flex: none;
+    font-size: max(5px, 1.4cqw);
+    letter-spacing: 0.04em;
+    color: rgb(var(--c-scratch-ink-2-rgb) / 0.9);
+  }
+  /* ---- 刮开进度 ---- */
+  .scratch-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.9rem;
+    font-size: 0.75rem;
+    color: var(--c-muted);
+  }
+
+  .scratch-progress-bar {
+    position: relative;
+    flex: 1;
+    height: 2px;
+    overflow: hidden;
+    border-radius: var(--r-pill);
+    background-color: rgb(var(--c-scratch-rule-rgb) / 0.14);
+  }
+
+  .scratch-progress-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background-color: rgb(var(--scratch-hue) / 0.85);
+    transition: width 120ms linear;
+  }
+
+  /* ---- 结果 ---- */
+  .scratch-result {
+    margin-top: 1.1rem;
+    padding: 1.15rem 1.25rem;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-lg);
+    background-color: rgb(var(--c-surface-rgb) / 0.5);
+  }
+
+  .scratch-result[data-win="true"] {
+    border-color: rgb(var(--scratch-hue) / 0.55);
+    background-image: linear-gradient(
+      140deg,
+      rgb(var(--scratch-hue) / 0.12),
+      transparent 62%
+    );
+  }
+
+  .scratch-result-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+  }
+
+  .scratch-result-title {
+    margin-top: 0.5rem;
+    font-size: clamp(1.35rem, 4vw, 1.75rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: rgb(var(--c-scratch-lose-rgb));
+  }
+
+  .scratch-result[data-win="true"] .scratch-result-title {
+    color: rgb(var(--c-scratch-win-rgb));
+  }
+
+  .scratch-result-tier {
+    margin-left: 0.6rem;
+    font-size: 0.8em;
+    font-weight: 500;
+    color: rgb(var(--scratch-hue-ink));
+  }
+
+  .scratch-result-note {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.7;
+    color: var(--c-muted);
+  }
+
+  .scratch-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+
+  /* ---- 奖级表 ----
+     宽度跟台面那张票对齐（同一根 40rem 竖轴），不要各center各的
+     ⚠️ 底色不能用 0.4 —— 表格是**参考数据**，它下面垫着的
+     `.watermark::before`（200px 平铺的中灰花纹，opacity 0.045）会从半透明卡片里透出来。
+     更要命的是它透出来的方向：花纹是中灰，卡片半透明底色一抬亮，
+     中灰反而**比卡面暗**，于是每行的中段浮出一片软边黑影
+     —— 看着像渲染坏了，其实就是水印。0.88 之后只剩一层几乎看不见的肌理。 */
+  .scratch-odds {
+    max-width: 40rem;
+    margin: 2.2rem auto 0;
+    padding: 1.15rem 1.25rem 1.25rem;
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-lg);
+    background-color: rgb(var(--c-surface-rgb) / 0.88);
+  }
+
+  .scratch-odds-table {
+    width: 100%;
+    margin-top: 0.9rem;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+  }
+
+  .scratch-odds-table th {
+    padding-bottom: 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: right;
+    color: var(--c-muted);
+    border-bottom: 1px solid var(--c-hairline);
+  }
+
+  .scratch-odds-table th:first-child {
+    text-align: left;
+  }
+
+  .scratch-odds-table td {
+    padding: 0.42rem 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--c-text);
+    border-bottom: 1px solid rgb(var(--c-scratch-rule-rgb) / 0.06);
+  }
+
+  .scratch-odds-table td:first-child {
+    text-align: left;
+  }
+
+  .scratch-odds-table tr[data-win="true"] td {
+    color: rgb(var(--c-scratch-win-rgb));
+  }
+
+  .scratch-odds-table tr[data-empty="true"] td {
+    color: var(--c-muted);
+  }
+
+  /* 揭开后高亮「你中的那一行」：概率表不只用来读，也用来对账 */
+  .scratch-odds-table tr[data-mine="true"] td {
+    font-weight: 600;
+    color: rgb(var(--c-scratch-win-rgb));
+    background-color: rgb(var(--c-scratch-rule-rgb) / 0.06);
+  }
+
+  .scratch-odds-table tr[data-mine="true"] td:first-child {
+    box-shadow: inset 2px 0 0 rgb(var(--c-scratch-win-rgb) / 0.85);
+  }
+
+  .scratch-odds-table tr[data-empty="true"][data-mine="true"] td {
+    color: var(--c-muted);
+    font-weight: 600;
+  }
+
+  .scratch-odds-note {
+    margin-top: 0.9rem;
+    font-size: 0.7rem;
+    line-height: 1.7;
+    color: var(--c-muted);
+  }
+
+  /* ---- 一款一色 + 一款一样纹样 ---- */
+  [data-face="star"] {
+    --scratch-hue: var(--c-scratch-orange-rgb);
+    --scratch-hue-ink: var(--c-scratch-orange-ink-rgb);
+  }
+
+  [data-face="weave"] {
+    --scratch-hue: var(--c-scratch-cyan-rgb);
+    --scratch-hue-ink: var(--c-scratch-cyan-ink-rgb);
+  }
+
+  [data-face="matrix"] {
+    --scratch-hue: var(--c-scratch-mint-rgb);
+    --scratch-hue-ink: var(--c-scratch-mint-ink-rgb);
+  }
+
+  [data-face="signal"] {
+    --scratch-hue: var(--c-scratch-rose-rgb);
+    --scratch-hue-ink: var(--c-scratch-rose-ink-rgb);
+  }
+
+  [data-face="prism"] {
+    --scratch-hue: var(--c-scratch-violet-rgb);
+    --scratch-hue-ink: var(--c-scratch-violet-ink-rgb);
+  }
+
+  /* 星芒：右上角放射线（真票的"光效"块） */
+  [data-face="star"] .ticket-motif {
+    background-image: repeating-conic-gradient(
+      from -8deg at 96% -6%,
+      rgb(var(--scratch-hue) / 0.26) 0deg 0.55deg,
+      transparent 0.55deg 7deg
+    );
+    mask-image: radial-gradient(circle at 96% -6%, #000 0, transparent 62%);
+    -webkit-mask-image: radial-gradient(circle at 96% -6%, #000 0, transparent 62%);
+  }
+
+  /* 波纹：左下角一圈圈同心弧 */
+  [data-face="weave"] .ticket-motif {
+    background-image: repeating-radial-gradient(
+      circle at -6% 108%,
+      rgb(var(--scratch-hue) / 0.22) 0 0.5px,
+      transparent 0.5px 3.2%
+    );
+  }
+
+  /* 矩阵：细网格（真票的"网点"底） */
+  [data-face="matrix"] .ticket-motif {
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgb(var(--scratch-hue) / 0.18) 0 1px,
+        transparent 1px 3.4%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgb(var(--scratch-hue) / 0.18) 0 1px,
+        transparent 1px 7.5%
+      );
+  }
+
+  /* 信号：竖向信号条 */
+  [data-face="signal"] .ticket-motif {
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgb(var(--scratch-hue) / 0.2) 0 1.4%,
+      transparent 1.4% 4.6%
+    );
+  }
+
+  /* 棱镜：斜切碎片 */
+  [data-face="prism"] .ticket-motif {
+    background-image: repeating-linear-gradient(
+        118deg,
+        rgb(var(--scratch-hue) / 0.2) 0 1.5%,
+        transparent 1.5% 6%
+      ),
+      repeating-linear-gradient(
+        62deg,
+        rgb(var(--scratch-hue) / 0.12) 0 1%,
+        transparent 1% 7%
+      );
+  }
+
+  /* 票面纹样不能盖住字 */
+  .ticket-head,
+  .ticket-title,
+  .ticket-match,
+  .ticket-foil,
+  .ticket-foot {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 通用按钮复位：抹掉 <button> 的默认外观。
+     `font: inherit` 是关键——button 默认不继承字号与字重。 */
+  .btn-reset {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    text-align: inherit;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* 柜体铭牌行那条刻度尺 */
+  .cabinet-rail {
+    background-image: repeating-linear-gradient(
+      to right,
+      rgb(var(--hud-line-rgb) / var(--cabinet-line-alpha)) 0 1px,
+      transparent 1px 12px
+    );
+  }
+
+  /* 首屏视口高度：优先 dvh，规避移动端地址栏抖动 */
+  .hero-min-h {
+    min-height: calc(100vh - var(--nav-h));
+  }
+
+  @supports (height: 100dvh) {
+    .hero-min-h {
+      min-height: calc(100dvh - var(--nav-h));
+    }
+  }
+
+  /* 图片 / 媒体占位表面 */
+  .surface-media {
+    background-image: linear-gradient(
+      135deg,
+      var(--c-surface-elevated),
+      color-mix(in srgb, var(--c-accent) 12%, transparent)
+    );
+  }
+
+  /* 品牌标志为「深色底发光」设计：浅色主题下套一层深色容器，
+     避免光晕被解析成深色描边、白色字标失去对比度。
+     只加内边距，标志本身尺寸在两个主题下保持一致。 */
+  [data-theme="light"] .logo-plate {
+    background-color: var(--c-bg-deep);
+    border-radius: var(--r-sm);
+    padding: 0.375rem 0.625rem;
+    box-shadow: var(--shadow-1);
+  }
+
+  /* 品牌水印层
+     用法：把 .watermark 加到需要铺水印的容器上（当前作用于主内容 + 页脚）。
+     实现要点：
+     1. isolation: isolate 建立独立层叠上下文，::before 的 z-index:-1 才会
+        稳定待在内容之下、页面底色之上（否则会跑到 body 背景后面而不可见）。
+     2. 同一张 2x 平铺块用两层叠加、第二层错开半个瓦片，得到斜向砖砌排布，
+        避免规整网格的机械感，同时只需一个很小的素材。
+     3. pointer-events: none 且为伪元素，不干扰交互、不进无障碍树。 */
+  .watermark {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .watermark::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--watermark-image), var(--watermark-image);
+    background-position: 0 0,
+      calc(var(--watermark-tile) / 2) calc(var(--watermark-tile) / 2);
+    background-repeat: repeat;
+    background-size: var(--watermark-tile) var(--watermark-tile);
+    opacity: var(--watermark-alpha);
+  }
+}
+
+/* 不支持 backdrop-filter 时，玻璃元素退回纯底色 */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass,
+  .glass-strong {
+    background-color: var(--c-bg);
+  }
+
+  /* 液态玻璃失去模糊后必须变实，否则内容会互相打架 */
+  .glass-liquid {
+    background-color: var(--c-surface-elevated);
+    background-image: none;
+  }
+
+  .glass-liquid-strong {
+    background-color: var(--c-bg-deep);
+  }
+
+  /* 浮层控件失去模糊后必须加深底色，否则白字会糊在浅色海报上 */
+  .media-control {
+    background-color: rgb(var(--c-scrim-rgb) / 0.82);
+  }
+}
+
+/* 极老的引擎没有 transform-style: preserve-3d —— 整个箱体会坍成一张平面。
+   与其糊成一团，不如直接退到「一面展墙」：去掉旋转与所有侧面，柜门改成淡出。 */
+@supports not (transform-style: preserve-3d) {
+  .vitrine {
+    transform: none;
+  }
+
+  .vt-side,
+  .vt-ceil,
+  .vt-floor,
+  .vt-led,
+  .vt-glow,
+  .vt-glowbar,
+  .vt-shelf,
+  .vt-shelf-lip,
+  .vt-tier-tag,
+  .vt-plinth-left,
+  .vt-plinth-right,
+  .vt-crown,
+  .vt-hinge,
+  .vt-mullion {
+    display: none;
+  }
+
+  /* 落地的阴影在退化成「一面展墙」后没有意义 */
+  .vitrine-stage::before {
+    display: none;
+  }
+
+  .vt-tier {
+    transform: translate3d(0, calc(var(--sy) - var(--tier-h)), 0);
+  }
+
+  .vt-door-left,
+  .vt-door-right,
+  .vitrine[data-open="true"] .vt-door-left,
+  .vitrine[data-open="true"] .vt-door-right {
+    transform: none;
+  }
+
+  .vitrine[data-open="true"] .vitrine-door {
+    opacity: 0;
+  }
+
+  /* 投币厅：没有 preserve-3d，六面体会坍成一张平面 —— 退到「只看正面」：
+     去掉纵深面与 3D 变换，出球口托盘与球回到正面上。 */
+  .arc3d .arc3d-machine {
+    transform: none;
+  }
+
+  .arc3d-face--back,
+  .arc3d-face--left,
+  .arc3d-face--right,
+  .arc3d-face--top,
+  .arc3d-face--bottom,
+  .arc3d-floor,
+  .arc3d-glare {
+    display: none;
+  }
+
+  .arc3d-face--front,
+  .arc3d-enter,
+  .arc3d-tray {
+    transform: none;
+  }
+
+  /* 球退回 2D：仍然按 --dx 横向排开，只是不再有纵深 */
+  .arc3d-ball {
+    transform: translateX(var(--dx, 0px));
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   首页 · 3D 许愿池
+   画布是**透明**的：池子浮在页面底色上，所以舞台自己给一层很淡的底，
+   让画布的四边有落点，不至于让池子悬在半空。
+   ========================================================================= */
+.well-stage {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  /* 竖屏手机上 16:9 会太扁，min-height 兜住可读性 */
+  min-height: 300px;
+  max-height: 62vh;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--c-hairline);
+  background:
+    radial-gradient(
+      118% 86% at 50% 0%,
+      rgb(var(--c-accent-rgb) / 0.07),
+      transparent 62%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(var(--c-surface-rgb) / 0.55),
+      rgb(var(--c-bg-deep-rgb) / 0.25)
+    );
+}
+
+/* WebGL 画布 */
+.well-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* 触屏上别让浏览器把拖拽解释成滚动/下拉刷新 */
+  touch-action: none;
+  cursor: grab;
+}
+
+.well-canvas[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+/* 抛物线预览：SVG 虚线，永远不吃指针事件 */
+.well-aim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 点开物体后的卡片：浮在 3D 坐标处。
+   用 translate 定位而不是 left/top —— 每帧要跟着物体动，
+   走 left/top 会每帧触发布局。 */
+.well-card {
+  position: absolute;
+  z-index: 3;
+  width: min(20rem, 82%);
+  translate: -50% -100%;
+  pointer-events: auto;
+}
+
+/* 3D 就绪前的一层微光骨架 */
+.well-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    100deg,
+    transparent 22%,
+    rgb(var(--c-accent-rgb) / 0.09) 48%,
+    transparent 74%
+  );
+  background-size: 220% 100%;
+  animation: well-skeleton 2.4s ease-in-out infinite;
+}
+
+@keyframes well-skeleton {
+  0% {
+    background-position: 140% 0;
+  }
+  100% {
+    background-position: -60% 0;
+  }
+}
+
+/* 2D 降级版的池子：CSS 纹理 + Canvas2D 画硬币/瓶子 */
+.well2d {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  overflow: hidden;
+}
+
+.well2d-pool {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(64%, 30rem);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 0.75rem solid rgb(var(--c-well-stone-rgb));
+  background:
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgb(var(--c-well-stone-rgb) / 0.85) 0 6px,
+      rgb(var(--c-well-stone-deep-rgb) / 0.9) 6px 12px
+    ),
+    radial-gradient(
+      circle at 50% 42%,
+      rgb(var(--c-well-water-shallow-rgb)) 0%,
+      rgb(var(--c-well-water-deep-rgb)) 68%
+    );
+  box-shadow:
+    inset 0 0 3rem rgb(0 0 0 / 0.45),
+    0 0 3rem rgb(var(--c-accent-rgb) / 0.12);
+}
+
+/* 2D 版的涟漪：一圈向外扩散的描边 */
+.well2d-ripple {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--c-well-water-rim-rgb) / 0.7);
+  animation: well2d-ripple 1.6s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes well2d-ripple {
+  from {
+    width: 6%;
+    height: 6%;
+    opacity: 0.85;
+  }
+  to {
+    width: 46%;
+    height: 46%;
+    opacity: 0;
+  }
+}
+
+/* X.形象：白墨线稿在浅色主题里反相
+   默子那张素材是黑白线稿。黑线压在深色玻璃卡上等于隐形，所以统一导出成
+   「白墨 + 透明底」；可浅色主题里白墨又会消失在白底上 —— 这里用 invert 把白墨翻成黑墨，
+   等于自动换了一张图。只反相 RGB，alpha 不受影响，也不会碰到卡片自身的玻璃层。 */
+[data-theme="light"] .portrait-ink {
+  filter: invert(1);
+}
+
+/* 用户偏好减少动效时，悬停位移与导航过渡降级 */
+@media (prefers-reduced-motion: reduce) {
+  /* 许愿池：骨架的扫光、2D 涟漪的扩散都只是装饰 */
+  .well-skeleton {
+    animation: none;
+    background-position: 50% 0;
+  }
+
+  .well2d-ripple {
+    display: none;
+  }
+
+  header[aria-label="主导航"] {
+    transition: none !important;
+  }
+
+  .lift:hover,
+  .glass-liquid-hover:hover {
+    transform: none;
+  }
+
+  /* 首屏装饰：扫光带是纯装饰且持续运动，直接移除；
+     光标保留静态方块（它的形状本身就在传达「等待输入」，闪不闪无所谓）。 */
+  .hero-scan {
+    display: none;
+  }
+
+  .hero-caret {
+    animation: none;
+    opacity: 1;
+  }
+
+  /* 展示柜的柜门开合、展品抬起与聚光都是装饰性过渡，直接去掉 */
+  .vitrine-door,
+  .vitrine-item,
+  .vitrine-item img,
+  .vitrine-halo,
+  .vt-glow,
+  .vt-glowbar,
+  .vt-led {
+    transition: none !important;
+  }
+
+  /* 官方服装挂架：拉近景与翻面都是"位移/旋转"的过渡。降级时**保留终态**，
+     只把过程去掉——衣服该在近景就在近景，该翻到背面就翻到背面。 */
+  .ap-garment,
+  .ap-3d,
+  .ap-post,
+  .ap-rail,
+  .ap-cross,
+  .ap-foot,
+  .ap-shadow,
+  .apparel-clip,
+  .apparel-scene {
+    transition: none !important;
+  }
+
+  /* 灯带与柔光只做「开门就亮」的开关，不做渐显 */
+  .vitrine[data-open="true"] .vt-glow,
+  .vitrine[data-open="true"] .vt-glowbar {
+    transition: none !important;
+  }
+
+  /* 投币厅：灯箱扫光、待机闪烁、屏幕「上电」、兑换球滚出全是装饰性动效。
+     注意只把动画去掉、**不改变终态**——待机文字仍要可见、球仍要停在托盘里。 */
+  .arc3d-marquee-glint,
+  .arc3d-standby,
+  .arc3d-canvas--play,
+  .arc3d-ball[data-arriving="true"],
+  .arcade-ball-sphere {
+    animation: none !important;
+  }
+
+  /* 屏幕开机的扫光带是纯装饰；去掉动画后它会**停在起始位**变成一条常驻亮带，
+     所以直接整个拿掉。 */
+  .arc3d[data-view="front"] .arc3d-screen::after {
+    display: none;
+  }
+
+  .arc3d-standby {
+    opacity: 1;
+  }
+
+  /* 侧视 ↔ 主视不再「转过来」，但终态（正对 + 推近）必须保留 ——
+     否则主视角里正面仍带旋转，canvas 会被 3D 重采样糊掉。 */
+  .arc3d-machine {
+    transition: none !important;
+  }
+
+  .arc3d[data-view="front"] .arc3d-machine,
+  .arc3d[data-view="play"] .arc3d-machine {
+    transform: rotateY(0deg) rotateX(0deg) translateZ(34px) scale(1.05);
+  }
+}
+
+/* ============================================================================
+   三位 AI 个人主页（#/member/erbiaoge · douzong · jinchan）——「自带幕布」的暗色舞台
+   ---------------------------------------------------------------------------
+   这三页是沉浸式暗场景（复古诊断室 / 指挥中心 / 金库），PRD 指定的底色都是
+   深胡桃木、深空蓝、深墨绿。**它们不跟随全站浅色主题**：`[data-act]` 在页面根节点
+   重新声明整套 `--c-*` 令牌，因此子树里所有语义色（text / muted / accent / hairline
+   / glass-liquid）会自动换成该页那一套，而页面之外（导航、鸣谢、页脚）完全不受影响。
+
+   🔴 铁律照旧：`--c-*-rgb` 必须是**空格分隔**的三通道（`26 21 16`）。
+      写成 `26, 21, 16` → Tailwind 产出 `rgb(26, 21, 16 / a)` 是非法值，
+      整条声明被静默丢弃（底色透明、渐变整条失效）。改完必须 getComputedStyle 验计算值。
+   ========================================================================== */
+
+[data-act] {
+  /* 让表单控件、滚动条也走暗色，否则原生控件会亮得刺眼 */
+  color-scheme: dark;
+  isolation: isolate;
+}
+
+/* ---- 二表哥：数据诊断室（复古侦探事务所 × 数据科技舱）---- */
+[data-act="er"] {
+  --c-bg-rgb: 26 21 16;
+  --c-bg-deep-rgb: 17 13 10;
+  --c-surface-rgb: 35 28 22;
+  --c-surface-elevated-rgb: 46 37 29;
+  --c-text-rgb: 240 232 220;
+  --c-muted-rgb: 178 160 138;
+  /* 黄铜主色：装饰与描边用它；给它压深墨字（不是白字），对比度 ~7:1 */
+  --c-accent-rgb: 216 165 90;
+  --c-accent-strong-rgb: 168 122 54;
+  --c-accent-bright-rgb: 232 190 120;
+  --c-accent-text-rgb: 235 196 128;
+  --c-cyan-rgb: 111 211 192;
+  --c-hairline-rgb: 232 190 120;
+  --hairline-alpha: 0.14;
+  --hairline-strong-alpha: 0.28;
+  --glass-alpha: 0.05;
+  --glass-border-alpha: 0.14;
+  --glass-hover-alpha: 0.08;
+  --glass-hover-border-alpha: 0.26;
+  --glass-sheen-alpha: 0.06;
+  --glass-rim-alpha: 0.1;
+
+  /* 该页专属：木、铜、纸、灯光、数据荧光 */
+  --er-wood-rgb: 58 42 30;
+  --er-brass-rgb: 198 155 92;
+  --er-paper-rgb: 233 220 196;
+  --er-paper-ink-rgb: 56 43 30;
+  --er-lamp-rgb: 255 190 110;
+  /* 三巨头联动那根「绳」的颜色：二表哥是月老红线，豆总是数据联动的青光。
+     共用组件（TrioLinks）只能吃这个共用令牌，不许再写 --er-* —— 写了两页必有一页断线。 */
+  --act-rope-rgb: 155 59 47;
+  --er-data-rgb: 111 211 192;
+  --er-stamp-rgb: 155 59 47;
+}
+
+/* 页面根：整块舞台。底色 + 顶部暖光 + 底部压暗，边界不外溢到导航与页脚 */
+.er-stage {
+  position: relative;
+  background-color: rgb(var(--c-bg-rgb));
+  color: rgb(var(--c-text-rgb));
+}
+
+.er-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgb(var(--er-lamp-rgb) / 0.12), transparent 62%),
+    radial-gradient(100% 60% at 50% 108%, rgb(0 0 0 / 0.55), transparent 70%);
+}
+
+/* 木墙面：52px 一块的板材 + 极弱的竖向高光，凑近才看得出是木头 */
+.er-wood {
+  background-color: rgb(var(--er-wood-rgb));
+  background-image:
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.26) 0 1px, transparent 1px 52px),
+    repeating-linear-gradient(90deg, rgb(255 214 170 / 0.04) 0 2px, transparent 2px 52px),
+    repeating-linear-gradient(180deg, rgb(0 0 0 / 0.16) 0 1px, transparent 1px 9px);
+}
+
+/* 泛黄纸张：低强度噪点当纸纤维（SVG 内联，零请求） */
+.er-paper {
+  --er-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.16'/%3E%3C/svg%3E");
+  background-color: rgb(var(--er-paper-rgb));
+  background-image: var(--er-grain);
+  color: rgb(var(--er-paper-ink-rgb));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    inset 0 -2px 0 rgb(120 96 66 / 0.16),
+    0 22px 44px -30px rgb(0 0 0 / 0.9);
+}
+
+/* 黄铜铭牌：中间亮、上下压深 + 刻字阴影，不用图片 */
+.er-brass {
+  background-image: linear-gradient(
+    180deg,
+    #dcb777 0%,
+    #c69b5c 38%,
+    #a87c3f 56%,
+    #c9a262 100%
+  );
+  color: #2a1d10;
+  box-shadow:
+    inset 0 1px 0 rgb(255 242 205 / 0.85),
+    inset 0 -1px 0 rgb(70 45 15 / 0.55),
+    0 12px 26px -16px rgb(0 0 0 / 0.9);
+  text-shadow:
+    0 -1px 0 rgb(60 40 15 / 0.35),
+    0 1px 0 rgb(255 240 200 / 0.55);
+}
+
+/* HUD 面板：细描边 + 对角两个 L 形取景角（不是四角，避免变成科幻贴纸）
+   豆总那页直接沿用同一个骨架（.dou-hud），只换令牌 —— 不必再抄一份。 */
+.er-hud,
+.dou-hud {
+  position: relative;
+  border: 1px solid rgb(var(--c-hairline-rgb) / var(--hairline-alpha));
+  background-image: linear-gradient(
+    180deg,
+    rgb(var(--c-surface-rgb) / 0.92),
+    rgb(var(--c-surface-rgb) / 0.66)
+  );
+  backdrop-filter: blur(10px);
+}
+
+.er-hud::before,
+.er-hud::after,
+.dou-hud::before,
+.dou-hud::after {
+  content: "";
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border-color: rgb(var(--c-accent-rgb) / 0.6);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+
+.er-hud::before,
+.dou-hud::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.er-hud::after,
+.dou-hud::after {
+  right: -1px;
+  bottom: -1px;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+}
+
+/* ---- 3D 木门 ------------------------------------------------------------
+   父层只给 perspective，**绝不能加 filter / opacity<1 / overflow clip**，
+   否则 3D 被拍平成两层平面（展示柜与投币厅都踩过，见 details-content.md）。
+   门的转轴在左边缘，绕 Y 轴负方向推开；门后房间是门的**兄弟节点**，
+   只在它自己身上做模糊，不污染 3D 祖先。 */
+.er-door-scene {
+  perspective: 1400px;
+  perspective-origin: 46% 42%;
+}
+
+.er-door-leaf {
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+  transition: transform 1150ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  backface-visibility: visible;
+}
+
+.er-door-scene[data-open="true"] .er-door-leaf {
+  transform: rotateY(-104deg);
+}
+
+/* 门缝里的暖光：门打开后房间才真的「亮起来」 */
+.er-room {
+  transition:
+    opacity 900ms ease,
+    filter 900ms ease,
+    transform 1150ms cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  filter: blur(10px) brightness(0.6);
+  transform: scale(0.96);
+}
+
+.er-door-scene[data-open="true"] ~ .er-room,
+.er-door-open .er-room {
+  opacity: 1;
+  filter: blur(0px) brightness(1);
+  transform: scale(1);
+}
+
+/* 图钉与联动线：三巨头联动区复用（三页都吃，所以叫 .act-pin） */
+.act-pin {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background-image: radial-gradient(circle at 34% 28%, #ffd9a0, #8d5a2a 72%);
+  box-shadow:
+    0 2px 4px rgb(0 0 0 / 0.65),
+    0 0 0 1px rgb(0 0 0 / 0.35);
+}
+
+/* 打字机光标：三页共用，所以叫 .act-* 而不是 .er-* */
+.act-caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 0.08em;
+  vertical-align: -0.12em;
+  background-color: currentColor;
+  animation: act-caret 1.05s steps(1, end) infinite;
+}
+
+@keyframes act-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 台灯暖光的呼吸（只动 opacity，不动 filter） */
+@keyframes er-lamp {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.er-lamp {
+  animation: er-lamp 5.5s ease-in-out infinite;
+}
+
+/* 结论盖章 */
+.er-stamp {
+  color: rgb(var(--er-stamp-rgb));
+  border: 2px solid rgb(var(--er-stamp-rgb) / 0.7);
+  transform: rotate(-7deg);
+  letter-spacing: 0.22em;
+}
+
+/* 诊断报告的横线纸底：每行 2rem，与正文 line-height 对齐 */
+.er-ruled {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 1.99rem,
+    rgb(var(--er-paper-ink-rgb) / 0.14) 1.99rem 2rem
+  );
+  line-height: 2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .er-door-leaf {
+    transition: none;
+  }
+
+  .er-room {
+    transition: none;
+  }
+
+  .act-caret,
+  .er-lamp {
+    animation: none;
+  }
+}
+
+/* ---- 诊断单上的滑杆 ---------------------------------------------------------
+   原生 range 在 Chrome 里是系统蓝，跟这套黄铜/纸张完全不搭。
+   自绘轨道与滑块（-webkit- 与 -moz- 两套都要写，Firefox 不认 -webkit-）。 */
+.er-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 1.75rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.er-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background-color: rgb(120 96 66 / 0.28);
+}
+
+.er-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 999px;
+  background-image: radial-gradient(circle at 34% 28%, #ffe0a6, #a87c3f 72%);
+  box-shadow:
+    0 2px 6px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(0 0 0 / 0.3);
+}
+
+.er-range:focus-visible {
+  outline: 2px solid rgb(120 96 66);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+.er-range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background-color: rgb(120 96 66 / 0.28);
+}
+
+.er-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 999px;
+  background-image: radial-gradient(circle at 34% 28%, #ffe0a6, #a87c3f 72%);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+}
+
+/* ---- 三巨头：悬停时压暗没被指的那两张 --------------------------------------
+   用纯 CSS 而不是 JS 状态：三张卡各自 hover 的优先级很难用工具类表达，
+   而且这里没有任何需要跨组件传递的数据。 */
+.trio-card {
+  transition:
+    opacity 240ms var(--ease-out),
+    transform 240ms var(--ease-out),
+    border-color 240ms var(--ease-out);
+}
+
+.trio:hover .trio-card {
+  opacity: 0.5;
+}
+
+.trio:hover .trio-card:hover,
+.trio:hover .trio-card[data-self="true"] {
+  opacity: 1;
+}
+
+.trio-rope {
+  transition: stroke-opacity 240ms var(--ease-out);
+  stroke-opacity: 0.55;
+}
+
+.trio:hover .trio-rope {
+  stroke-opacity: 1;
+}
+
+/* ==========================================================================
+   豆总：创业指挥中心（#/member/douzong）—— 深空蓝 × 霓虹青 × 作战室
+   --------------------------------------------------------------------------
+   与二表哥同一套机制，不同皮肤：`[data-act="dou"]` 在页面根重声明整套 `--c-*`，
+   页面之外（导航 / 鸣谢 / 页脚）完全不受影响。🔴 `--c-*-rgb` 必须空格分隔。
+   视觉纪律：PRD 要霓虹青，但**不做刺眼的高饱和描边**——大面积用压暗一档的
+   `0 196 214`，`0 229 255` 只留给小面积指示灯与扫描线。
+   ========================================================================== */
+[data-act="dou"] {
+  --c-bg-rgb: 10 22 40;
+  --c-bg-deep-rgb: 6 14 26;
+  --c-surface-rgb: 17 34 64;
+  --c-surface-elevated-rgb: 24 45 80;
+  --c-text-rgb: 230 241 255;
+  /* PRD 给的是 #8892B0，在深空蓝上偏灰发闷；提亮一档，AA 更稳 */
+  --c-muted-rgb: 150 163 189;
+  --c-accent-rgb: 0 196 214;
+  --c-accent-strong-rgb: 0 150 168;
+  --c-accent-bright-rgb: 0 229 255;
+  --c-accent-text-rgb: 126 231 245;
+  --c-cyan-rgb: 0 214 143;
+  --c-hairline-rgb: 0 196 214;
+  --hairline-alpha: 0.16;
+  --hairline-strong-alpha: 0.32;
+  --glass-alpha: 0.05;
+  --glass-border-alpha: 0.16;
+  --glass-hover-alpha: 0.09;
+  --glass-hover-border-alpha: 0.3;
+  --glass-sheen-alpha: 0.07;
+  --glass-rim-alpha: 0.12;
+
+  /* 该页专属：状态灯三色 + 暖橙（决策） */
+  --dou-green-rgb: 0 214 143;
+  --dou-warn-rgb: 255 217 61;
+  --dou-amber-rgb: 255 138 61;
+  --dou-red-rgb: 255 92 138;
+  /* 这一页的「联动线」= 数据链路，所以是青光而不是红线 */
+  --act-rope-rgb: 0 196 214;
+}
+
+.dou-stage {
+  position: relative;
+  background-color: rgb(var(--c-bg-rgb));
+  color: rgb(var(--c-text-rgb));
+  /* 深空蓝的底子：顶部一束冷光，底部压深，像指挥室的地面灯 */
+  background-image:
+    radial-gradient(120% 62% at 50% -14%, rgb(0 229 255 / 0.1), transparent 60%),
+    radial-gradient(90% 50% at 50% 104%, rgb(0 0 0 / 0.62), transparent 72%);
+}
+
+/* 透视地板网格：只铺在下半屏，向上淡出。纯渐变，不用图片 */
+.dou-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgb(var(--c-accent-rgb) / 0.09) 0 1px,
+      transparent 1px 68px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgb(var(--c-accent-rgb) / 0.07) 0 1px,
+      transparent 1px 68px
+    );
+  mask-image: linear-gradient(180deg, transparent 6%, rgb(0 0 0 / 0.85) 42%, transparent 96%);
+  opacity: 0.7;
+}
+
+/* ---- 全息头像 ------------------------------------------------------------
+   素材是透明底 600×800 立绘，直接灰度 + 叠青色（mix-blend-mode: color 只改色相，
+   亮度保留）→ 再压一层扫描线与一道缓慢扫过的光束。
+   ⚠️ 这里没有 3D，clip-path / filter 随便用；但**别把它套进 preserve-3d 的子树**。
+   -------------------------------------------------------------------------- */
+.dou-holo {
+  position: relative;
+  isolation: isolate;
+}
+
+.dou-holo-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(var(--c-accent-rgb) / 0.34);
+  border-radius: 6px;
+  background:
+    radial-gradient(120% 80% at 50% 100%, rgb(0 196 214 / 0.16), transparent 62%),
+    linear-gradient(180deg, rgb(var(--c-surface-rgb) / 0.5), rgb(var(--c-bg-deep-rgb) / 0.9));
+  /* 四角切一刀，像投影舱的取景框 */
+  clip-path: polygon(
+    18px 0,
+    100% 0,
+    100% calc(100% - 18px),
+    calc(100% - 18px) 100%,
+    0 100%,
+    0 18px
+  );
+}
+
+.dou-holo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 6%;
+  filter: grayscale(1) contrast(1.2) brightness(1.24);
+  opacity: 0.95;
+}
+
+/* 窄屏改用 contain：立绘是透明底，装进框里能整只看到；cover 会把鞋切掉 */
+@media (max-width: 767px) {
+  .dou-holo-img {
+    object-fit: contain;
+    object-position: 50% 100%;
+  }
+}
+
+/* 青色染色：只改色相，保留原图的明暗 */
+.dou-holo-tint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    170deg,
+    rgb(0 229 255 / 0.56),
+    rgb(0 108 136 / 0.68)
+  );
+  mix-blend-mode: color;
+  pointer-events: none;
+}
+
+/* 扫描线 */
+.dou-holo-scan {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgb(0 0 0 / 0.3) 0 1px,
+    transparent 1px 4px
+  );
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* 缓慢扫过的一道亮带 */
+.dou-holo-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 26%;
+  top: -30%;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgb(0 229 255 / 0.16) 42%,
+    rgb(0 229 255 / 0.24) 50%,
+    transparent
+  );
+  pointer-events: none;
+  animation: dou-beam 7s linear infinite;
+}
+
+/* 投影底座：脚下那一圈光 */
+.dou-holo-base {
+  position: relative;
+  height: 26px;
+  margin: -18px auto 0;
+  width: 76%;
+  background: radial-gradient(50% 50% at 50% 50%, rgb(0 229 255 / 0.34), transparent 70%);
+  filter: blur(2px);
+}
+
+@keyframes dou-beam {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(500%);
+    opacity: 0;
+  }
+}
+
+/* ---- 指挥台 --------------------------------------------------------------
+   下面一层是 by 3D 透视的地板（.dou-console-floor），上面三块屏是**普通 2D 面板**。
+   刻意不把屏放进 preserve-3d 的子树：屏里要放文字和 CountUp，进了 3D 就会被
+   重采样发糊，而且父层任何 filter/opacity 都会把它拍平（展示柜的坑）。
+   -------------------------------------------------------------------------- */
+.dou-console {
+  position: relative;
+}
+
+.dou-console-floor {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 6px;
+  height: 96px;
+  border-radius: 50%;
+  background:
+    radial-gradient(60% 100% at 50% 50%, rgb(0 196 214 / 0.22), transparent 72%),
+    repeating-linear-gradient(
+      90deg,
+      rgb(0 196 214 / 0.2) 0 1px,
+      transparent 1px 40px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgb(0 196 214 / 0.16) 0 1px,
+      transparent 1px 26px
+    );
+  transform: perspective(520px) rotateX(64deg);
+  transform-origin: 50% 100%;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* 一块屏 */
+.dou-screen {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid rgb(var(--c-accent-rgb) / 0.24);
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgb(0 196 214 / 0.1), rgb(4 14 28 / 0.86) 46%),
+    rgb(var(--c-surface-rgb) / 0.9);
+  text-align: left;
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+/* 屏顶那道亮边：像刚通电 */
+.dou-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(0 229 255 / 0.85) 22%,
+    rgb(0 229 255 / 0.35) 62%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.dou-screen:hover,
+.dou-screen:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgb(var(--c-accent-rgb) / 0.6);
+  box-shadow:
+    0 0 0 1px rgb(0 229 255 / 0.18),
+    0 18px 34px -26px rgb(0 229 255 / 0.7);
+}
+
+/* 屏里的进度轨（健康度 / 能量条都复用它） */
+.dou-track {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.09);
+  overflow: hidden;
+}
+
+.dou-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgb(0 150 168), rgb(0 229 255));
+}
+
+/* ---- 状态灯：呼吸。绿色慢、黄色中速、红色快 ---- */
+.dou-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: dou-breathe 3.4s ease-in-out infinite;
+}
+
+.dou-dot[data-tone="watch"] {
+  animation-duration: 1.9s;
+}
+
+.dou-dot[data-tone="blocked"] {
+  animation-duration: 1.1s;
+}
+
+@keyframes dou-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 4px rgb(255 255 255 / 0.06);
+  }
+}
+
+/* ---- 作战沙盘 ------------------------------------------------------------ */
+.dou-zone {
+  cursor: pointer;
+  transition:
+    filter 220ms ease,
+    opacity 220ms ease;
+}
+
+.dou-zone:hover,
+.dou-zone:focus-visible {
+  filter: brightness(1.28);
+}
+
+/* 选中的战区提亮 + 外发光；**不压暗其它**——压暗整张图会糊成一块，
+   「当前在看什么」靠右下角那张详情卡说，不靠把邻居调暗 */
+.dou-zone[data-active="true"] {
+  filter: brightness(1.18) drop-shadow(0 0 10px rgb(0 229 255 / 0.35));
+}
+
+.dou-zone-label {
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* ---- 雷达图 -------------------------------------------------------------- */
+.dou-radar-axis {
+  transition: opacity 200ms ease;
+}
+
+.dou-radar-shape {
+  transition: points 260ms ease;
+}
+
+/* ---- 报告纸：豆总不用纸，用一块发光的读数面板 ---------------------------- */
+.dou-readout {
+  position: relative;
+  border: 1px solid rgb(var(--c-accent-rgb) / 0.28);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgb(0 196 214 / 0.07), transparent 40%),
+    rgb(var(--c-surface-rgb) / 0.72);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    inset 0 0 60px -30px rgb(0 229 255 / 0.5);
+}
+
+/* 顶部一条会走的读数线，仪式期间当进度用 */
+.dou-readout-bar {
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(0 196 214 / 0.2), rgb(0 229 255 / 0.9), rgb(0 196 214 / 0.2));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dou-holo-beam,
+  .dou-dot {
+    animation: none;
+  }
+  .dou-screen,
+  .dou-zone {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   X.媒体 · 作品封面卡
+   --------------------------------------------------------------------------
+   网点用 currentColor 画：卡片上继承的是 `text-text`，深浅主题各自成立，
+   不需要为浅色主题再写一份。整块往左下淡出，避开右上角的形象与脸。
+   ========================================================================== */
+.media-dots {
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1.1px);
+  background-size: 7px 7px;
+  -webkit-mask-image: linear-gradient(118deg, #000 0%, rgb(0 0 0 / 0.55) 46%, transparent 74%);
+  mask-image: linear-gradient(118deg, #000 0%, rgb(0 0 0 / 0.55) 46%, transparent 74%);
+}
